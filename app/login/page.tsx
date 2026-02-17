@@ -1,10 +1,13 @@
 import { login, signup } from "./actions";
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { message: string }
+  searchParams: Promise<{ message: string }>; // 1. Ubah tipe jadi Promise
 }) {
+  // 2. Await searchParams sebelum digunakan
+  const { message } = await searchParams;
+
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8">
@@ -12,17 +15,20 @@ export default function LoginPage({
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to Scheduler
           </h2>
-          {searchParams?.message && (
+          {/* 3. Gunakan variabel 'message' yang sudah di-await */}
+          {message && (
             <div className="mt-4 p-4 bg-blue-100 text-blue-700 rounded-md text-sm text-center">
-              {searchParams.message}
+              {message}
             </div>
           )}
         </div>
-        
+
         <form className="mt-8 space-y-6">
           <div className="-space-y-px rounded-md shadow-sm">
             <div>
-              <label htmlFor="fullName" className="sr-only">Nama Lengkap (Khusus Daftar)</label>
+              <label htmlFor="fullName" className="sr-only">
+                Nama Lengkap (Khusus Daftar)
+              </label>
               <input
                 id="fullName"
                 name="fullName"
@@ -32,7 +38,9 @@ export default function LoginPage({
               />
             </div>
             <div>
-              <label htmlFor="email-address" className="sr-only">Email address</label>
+              <label htmlFor="email-address" className="sr-only">
+                Email address
+              </label>
               <input
                 id="email-address"
                 name="email"
@@ -44,7 +52,9 @@ export default function LoginPage({
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">Password</label>
+              <label htmlFor="password" className="sr-only">
+                Password
+              </label>
               <input
                 id="password"
                 name="password"
@@ -74,5 +84,5 @@ export default function LoginPage({
         </form>
       </div>
     </div>
-  )
+  );
 }
