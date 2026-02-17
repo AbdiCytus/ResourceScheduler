@@ -138,6 +138,12 @@ export async function submitSchedule(prevState: any, formData: FormData) {
       };
     }
 
+    await logActivity(supabase, user.id, "PREEMPT_SCHEDULE", {
+      victim_schedule_id: conflict.id,
+      victim_title: conflict.title,
+      reason: `Skor ${totalScore} mengalahkan ${conflictScore}`,
+    });
+
     preemptionMessage = " (Menggeser jadwal prioritas lebih rendah)";
   }
 
@@ -173,8 +179,31 @@ export async function submitSchedule(prevState: any, formData: FormData) {
     return { error: transactionResult.message };
   }
 
+  await logActivity(supabase, user.id, "CREATE_SCHEDULE", {
+    resource_id: resourceId,
+    date: date,
+    time: `${startTime} - ${endTime}`,
+    score: totalScore,
+    urgency: urgency,
+  });
+
   // 7. SUKSES & REDIRECT
   revalidatePath("/portal");
   const finalMessage = `Jadwal berhasil dibuat!${preemptionMessage}`;
   redirect(`/portal?success=${encodeURIComponent(finalMessage)}`);
+}
+
+// --- HELPER: Catat Audit Log ---
+async function logActivity(
+  supabase: any,
+  userId: string,
+  action: string,
+  details: any
+) {
+  await supabase.from("audit_logs").insert({
+    user_id: userId,
+    action: action,
+    details: details,
+    created_at: new Date().toISOString(),
+  });
 }
