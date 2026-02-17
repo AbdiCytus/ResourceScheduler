@@ -22,6 +22,9 @@ export default async function BookingPage({
       </div>
     );
 
+  // Logika Satuan
+  const unit = resource.type === "Room" ? "Orang" : "Unit";
+
   return (
     <div className="min-h-screen bg-slate-50 py-10 px-4 md:px-8 flex flex-col items-center">
       <div className="w-full max-w-5xl">
@@ -31,11 +34,11 @@ export default async function BookingPage({
             Resource:{" "}
             <span className="font-bold text-indigo-600">{resource.name}</span>
             <span className="mx-2">•</span>
-            Kapasitas: {resource.capacity}
+            Kapasitas: {resource.capacity} {unit}
           </p>
         </div>
 
-        {/* Form Component (Sudah 2 Kolom) */}
+        {/* Form Component */}
         <BookingForm
           resourceId={id}
           resourceName={resource.name}
