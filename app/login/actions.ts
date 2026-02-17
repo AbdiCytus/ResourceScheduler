@@ -49,3 +49,15 @@ export async function signup(formData: FormData) {
   revalidatePath("/", "layout");
   redirect("/login?message=Cek email untuk konfirmasi pendaftaran!");
 }
+
+export async function signOut() {
+  const supabase = await createClient();
+
+  await supabase.auth.signOut();
+
+  // Refresh cache agar layout (Navbar) tahu user sudah logout
+  revalidatePath("/", "layout");
+
+  // Redirect ke halaman login
+  redirect("/login");
+}

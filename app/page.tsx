@@ -1,32 +1,71 @@
-import { createClient } from '@/utils/supabase/server';
+import Link from "next/link";
 
-export default async function Home() {
-  // 1. Inisialisasi client Supabase di Server
-  const supabase = await createClient();
-
-  // 2. Query ke database (Ambil data roles)
-  const { data: roles, error } = await supabase.from('roles').select('*');
-
-  // 3. Tampilkan Error jika ada
-  if (error) {
-    return <pre>Error: {JSON.stringify(error, null, 2)}</pre>;
-  }
-
-  // 4. Tampilkan Data
+export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24">
-      <h1 className="text-4xl font-bold mb-8">Scheduler TA</h1>
-      <div className="bg-gray-100 p-6 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-semibold mb-4 text-gray-800">Cek Koneksi Database:</h2>
-        <ul className="space-y-2">
-          {roles?.map((role) => (
-            <li key={role.id} className="p-3 bg-white rounded border border-gray-200 text-gray-700">
-              <span className="font-bold uppercase text-blue-600">{role.name}</span>
-              <p className="text-sm text-gray-500">{role.description}</p>
-            </li>
-          ))}
-        </ul>
+    <div className="min-h-screen bg-white">
+      {/* Hero Section */}
+      <div className="relative isolate px-6 pt-14 lg:px-8">
+        <div className="mx-auto max-w-2xl py-32 sm:py-48 lg:py-56 text-center">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
+            Sistem Penjadwalan Cerdas Berbasis Prioritas
+          </h1>
+          <p className="mt-6 text-lg leading-8 text-gray-600">
+            Kelola peminjaman ruang dan alat dengan algoritma Weighted Priority
+            & Safe Preemption. Menjamin jadwal yang adil, efisien, dan bebas
+            konflik.
+          </p>
+          <div className="mt-10 flex items-center justify-center gap-x-6">
+            <Link
+              href="/portal"
+              className="rounded-md bg-indigo-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            >
+              Mulai Peminjaman
+            </Link>
+            <Link
+              href="/about"
+              className="text-sm font-semibold leading-6 text-gray-900"
+            >
+              Pelajari Cara Kerja <span aria-hidden="true">→</span>
+            </Link>
+          </div>
+        </div>
       </div>
-    </main>
+
+      {/* Feature Section Sederhana */}
+      <div className="bg-gray-50 py-24 sm:py-32">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl lg:text-center">
+            <h2 className="text-base font-semibold leading-7 text-indigo-600">
+              Fitur Utama
+            </h2>
+            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              Solusi Konflik Otomatis
+            </p>
+          </div>
+          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-4xl">
+            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-10 lg:max-w-none lg:grid-cols-2 lg:gap-y-16">
+              <div className="relative pl-16">
+                <dt className="text-base font-semibold leading-7 text-gray-900">
+                  ⚡ Weighted Priority
+                </dt>
+                <dd className="mt-2 text-base leading-7 text-gray-600">
+                  Setiap permintaan dinilai berdasarkan peran pengguna dan
+                  urgensi kegiatan. Prioritas tinggi didahulukan.
+                </dd>
+              </div>
+              <div className="relative pl-16">
+                <dt className="text-base font-semibold leading-7 text-gray-900">
+                  🛡️ Safe Preemption
+                </dt>
+                <dd className="mt-2 text-base leading-7 text-gray-600">
+                  Jadwal penting dapat menggeser jadwal rutin secara otomatis,
+                  namun tetap mematuhi aturan "Freeze Time" 24 jam.
+                </dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
