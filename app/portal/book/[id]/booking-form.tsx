@@ -14,9 +14,11 @@ const initialState = {
 export default function BookingForm({
   resourceId,
   resourceName,
+  currentVersion,
 }: {
   resourceId: string;
   resourceName: string;
+  currentVersion: number;
 }) {
   // state: berisi return value dari server (misal pesan error)
   // formAction: fungsi trigger untuk form
@@ -28,6 +30,7 @@ export default function BookingForm({
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="resourceId" value={resourceId} />
+      <input type="hidden" name="expectedVersion" value={currentVersion || 1} />
 
       {/* Tampilkan Pesan Error di sini jika ada */}
       {state?.error && (

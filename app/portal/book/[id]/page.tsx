@@ -15,7 +15,7 @@ export default async function BookingPage({
   // Ambil detail resource untuk ditampilkan judulnya
   const { data: resource } = await supabase
     .from("resources")
-    .select("*")
+    .select("*, version")
     .eq("id", id)
     .single();
 
@@ -50,7 +50,11 @@ export default async function BookingPage({
         </p>
 
         {/* Panggil Client Component Form */}
-        <BookingForm resourceId={id} resourceName={resource.name} />
+        <BookingForm
+          resourceId={id}
+          resourceName={resource.name}
+          currentVersion={resource.version}
+        />
       </div>
     </div>
   );
