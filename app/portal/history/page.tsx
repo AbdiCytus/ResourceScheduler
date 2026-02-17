@@ -105,6 +105,12 @@ export default async function HistoryPage() {
                     >
                       {schedule.status.toUpperCase()}
                     </span>
+                    <div className="mt-2 text-xs text-gray-500">
+                      <span className="font-bold">
+                        Score: {schedule.calculated_score}
+                      </span>
+                      <span className="ml-2">({schedule.priority_level})</span>
+                    </div>
                     {schedule.rejection_reason && (
                       <p className="text-xs text-red-600 mt-1">
                         Alasan: {schedule.rejection_reason}

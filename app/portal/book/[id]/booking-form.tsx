@@ -48,6 +48,24 @@ export default function BookingForm({
         />
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Tingkat Urgensi
+        </label>
+        <select
+          name="urgency"
+          className="mt-1 block w-full border border-gray-300 rounded-md p-2 bg-white"
+        >
+          <option value="low">Low (Kegiatan Rutin/Biasa)</option>
+          <option value="medium">Medium (Penting)</option>
+          <option value="high">High (Sangat Penting/Mendesak)</option>
+          <option value="critical">Critical (Darurat/VIP)</option>
+        </select>
+        <p className="text-xs text-gray-500 mt-1">
+          *Urgensi mempengaruhi prioritas persetujuan sistem.
+        </p>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700">
