@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 export default async function UserPortal({
   searchParams,
 }: {
-  searchParams: Promise<{ success: string }>;
+  searchParams: Promise<{ success: string; error: string }>;
 }) {
   const supabase = await createClient();
 
@@ -15,9 +15,19 @@ export default async function UserPortal({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { success } = await searchParams;
+  // 2. Ambil Role User
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("roles (name)")
+    .eq("id", user.id)
+    .single();
+  const roleName = (profile?.roles as any)?.name;
 
-  // 2. Ambil Resource (Hanya yang BELUM dihapus permanen/soft delete)
+  const isSupervisor = roleName === "supervisor"; // Flag Cek Supervisor
+
+  const { success, error } = await searchParams;
+
+  // 3. Ambil Resources
   const { data: resources } = await supabase
     .from("resources")
     .select("*")
@@ -34,7 +44,9 @@ export default async function UserPortal({
               Portal Peminjaman
             </h1>
             <p className="text-slate-500 mt-1">
-              Pilih ruangan atau alat yang tersedia.
+              {isSupervisor
+                ? "Mode Pemantauan Supervisor"
+                : "Pilih ruangan atau alat yang tersedia."}
             </p>
           </div>
           {success && (
@@ -42,17 +54,19 @@ export default async function UserPortal({
               ✅ {success}
             </div>
           )}
+          {error && (
+            <div className="bg-red-100 text-red-800 px-4 py-2 rounded-xl text-sm font-bold border border-red-200 shadow-sm animate-pulse">
+              ⛔ {error}
+            </div>
+          )}
         </div>
 
         {/* Grid Card */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {resources?.map((res) => {
-            // Logika Status
-            const isClosingDown = !!res.scheduled_for_deletion_at; // Sedang menunggu jadwal hapus
-            const isInactive = !res.is_active; // Dinonaktifkan admin
-            const isDisabled = isClosingDown || isInactive; // Kondisi tidak bisa dipinjam
-
-            // Logika Satuan
+            const isClosingDown = !!res.scheduled_for_deletion_at;
+            const isInactive = !res.is_active;
+            const isDisabled = isClosingDown || isInactive;
             const unit = res.type === "Room" ? "Orang" : "Unit";
 
             return (
@@ -68,7 +82,6 @@ export default async function UserPortal({
               >
                 <div>
                   <div className="flex justify-between items-start mb-4">
-                    {/* Icon Tipe */}
                     <div
                       className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl border ${
                         res.type === "Room"
@@ -79,7 +92,6 @@ export default async function UserPortal({
                       {res.type === "Room" ? "🏢" : "💻"}
                     </div>
 
-                    {/* Badge Status & Kapasitas */}
                     {isClosingDown ? (
                       <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2.5 py-1 rounded-full border border-red-200 uppercase tracking-wide">
                         Segera Ditutup
@@ -104,8 +116,18 @@ export default async function UserPortal({
                   </p>
                 </div>
 
-                {/* Tombol Action */}
-                {isDisabled ? (
+                {/* LOGIKA TOMBOL */}
+                {isSupervisor ? (
+                  // Supervisor tidak bisa booking
+                  <button
+                    disabled
+                    hidden
+                    className="w-full block text-center bg-indigo-50 text-indigo-400 font-bold py-3 rounded-xl cursor-default border border-indigo-100 text-sm"
+                  >
+                    Mode Pantau
+                  </button>
+                ) : isDisabled ? (
+                  // Resource mati
                   <button
                     disabled
                     className="w-full block text-center bg-slate-200 text-slate-400 font-bold py-3 rounded-xl cursor-not-allowed border border-slate-300 text-sm"
@@ -113,6 +135,7 @@ export default async function UserPortal({
                     Tidak Tersedia
                   </button>
                 ) : (
+                  // User Normal
                   <Link
                     href={`/portal/book/${res.id}`}
                     className="w-full block text-center bg-white border-2 border-indigo-100 text-indigo-600 font-bold py-3 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"

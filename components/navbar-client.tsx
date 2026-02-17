@@ -5,10 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "@/app/login/actions";
 
 export default function NavbarClient({ user, role }: { user: any; role: any }) {
-  const pathname = usePathname(); // Hook untuk cek URL saat ini
-
-  // Jangan tampilkan Navbar sama sekali jika di halaman login (Opsional)
-  // Atau sesuai request: hanya hilangkan tombol loginnya saja.
+  const pathname = usePathname();
   const isLoginPage = pathname === "/login";
 
   return (
@@ -25,20 +22,25 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
             </span>
           </Link>
 
-          {/* BAGIAN KANAN: MENU + PROFILE (Digabung agar rata kanan) */}
+          {/* BAGIAN KANAN: MENU + PROFILE */}
           <div className="flex items-center gap-6">
-            {/* Menu Desktop - Dipindah ke Kanan */}
             <div className="hidden md:flex space-x-2">
               {user && (
                 <>
+                  {/* Portal: Semua user bisa akses (Supervisor hanya pantau) */}
                   <NavLink href="/portal" activePath={pathname}>
                     Portal
                   </NavLink>
-                  <NavLink href="/portal/history" activePath={pathname}>
-                    Riwayat
-                  </NavLink>
+
+                  {/* Riwayat: Sembunyikan untuk Supervisor */}
+                  {role !== "supervisor" && (
+                    <NavLink href="/portal/history" activePath={pathname}>
+                      Riwayat
+                    </NavLink>
+                  )}
                 </>
               )}
+
               {role === "admin" && (
                 <NavLink
                   href="/admin/resources"
@@ -74,7 +76,6 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                   </form>
                 </div>
               ) : (
-                /* LOGIKA: Hilangkan tombol login jika sedang di halaman login */
                 !isLoginPage && (
                   <Link
                     href="/login"
@@ -92,7 +93,6 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
   );
 }
 
-// Komponen Link dengan Style Active
 function NavLink({
   href,
   children,
@@ -104,24 +104,19 @@ function NavLink({
   activePath: string;
   isSpecial?: boolean;
 }) {
-  // Cek apakah path sekarang sama dengan href link ini
   const isActive = activePath === href;
-
-  // Base Style
   const baseClass =
     "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200";
 
-  // Style jika Aktif vs Tidak Aktif
   let activeClass = "";
-
   if (isActive) {
     activeClass = isSpecial
-      ? "text-indigo-700 bg-indigo-100 ring-1 ring-indigo-200" // Aktif & Spesial
-      : "text-indigo-600 bg-indigo-50 font-bold"; // Aktif Biasa
+      ? "text-indigo-700 bg-indigo-100 ring-1 ring-indigo-200"
+      : "text-indigo-600 bg-indigo-50 font-bold";
   } else {
     activeClass = isSpecial
-      ? "text-slate-600 hover:text-indigo-600 hover:bg-indigo-50" // Tidak Aktif & Spesial
-      : "text-slate-500 hover:text-indigo-600 hover:bg-slate-50"; // Tidak Aktif Biasa
+      ? "text-slate-600 hover:text-indigo-600 hover:bg-indigo-50"
+      : "text-slate-500 hover:text-indigo-600 hover:bg-slate-50";
   }
 
   return (

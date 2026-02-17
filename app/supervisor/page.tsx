@@ -3,20 +3,38 @@ import { redirect } from "next/navigation";
 
 export default async function SupervisorDashboard() {
   const supabase = await createClient();
+
+  // 1. Cek Login
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Fetch Data (Logic sama, hanya UI berubah)
+  // 2. Cek Role Secara Ketat
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("roles (name)")
+    .eq("id", user.id)
+    .single();
+
+  const roleName = (profile?.roles as any)?.name;
+
+  // ATURAN KEAMANAN: Hanya 'supervisor' yang boleh masuk sini.
+  if (roleName !== "supervisor") {
+    redirect("/portal?error=Akses ditolak. Halaman ini khusus Supervisor.");
+  }
+
+  // 3. Ambil Data Statistik
   const { count: totalSchedules } = await supabase
     .from("schedules")
     .select("*", { count: "exact", head: true })
     .eq("status", "approved");
+
   const { count: totalPreemptions } = await supabase
     .from("audit_logs")
     .select("*", { count: "exact", head: true })
     .eq("action", "PREEMPT_SCHEDULE");
+
   const { data: logs } = await supabase
     .from("audit_logs")
     .select(`*, profiles (full_name, email)`)
@@ -30,7 +48,7 @@ export default async function SupervisorDashboard() {
           Dashboard Monitoring
         </h1>
 
-        {/* Stats Cards dengan Gradient Halus */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <StatCard
             title="Jadwal Aktif"
@@ -109,6 +127,13 @@ export default async function SupervisorDashboard() {
                     </td>
                   </tr>
                 ))}
+                {(!logs || logs.length === 0) && (
+                  <tr>
+                    <td colSpan={4} className="p-8 text-center text-slate-400">
+                      Belum ada aktivitas.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

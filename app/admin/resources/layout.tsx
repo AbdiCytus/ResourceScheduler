@@ -40,7 +40,7 @@ export default async function AdminLayout({
             />
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">Akses Ditolak</h1>
+        <h1 className="text-2xl font-bold text-slate-900">Akses Dibatasi</h1>
         <p className="text-slate-500 mt-2">
           Halaman ini khusus untuk Administrator.
         </p>
@@ -113,27 +113,7 @@ export default async function AdminLayout({
             </AdminNavLink>
           </div>
 
-          <div>
-            <p className="px-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">
-              Laporan
-            </p>
-            <AdminNavLink href="/supervisor">
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z"
-                />
-              </svg>
-              Ke Dashboard Spv
-            </AdminNavLink>
-          </div>
+          {/* BAGIAN LINK KE SUPERVISOR DIHAPUS DARI SINI */}
         </nav>
 
         {/* Footer Sidebar */}
@@ -162,7 +142,6 @@ export default async function AdminLayout({
 
       {/* MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto">
-        {/* Mobile Header (Hanya muncul di mobile) */}
         <div className="md:hidden bg-white border-b border-slate-200 p-4 mb-4 flex items-center justify-between sticky top-0 z-10">
           <span className="font-bold text-slate-800">Admin Panel</span>
           <Link
@@ -172,15 +151,12 @@ export default async function AdminLayout({
             Menu
           </Link>
         </div>
-
-        {/* Content Area */}
         {children}
       </main>
     </div>
   );
 }
 
-// Komponen Kecil untuk Link Sidebar
 function AdminNavLink({
   href,
   children,
