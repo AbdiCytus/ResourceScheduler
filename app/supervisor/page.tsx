@@ -1,16 +1,25 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
+// Helper Format Hari & Tanggal
+function formatDayDate(dateString: string) {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 export default async function SupervisorDashboard() {
   const supabase = await createClient();
 
-  // 1. Cek Login
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // 2. Cek Role Secara Ketat
   const { data: profile } = await supabase
     .from("profiles")
     .select("roles (name)")
@@ -18,28 +27,30 @@ export default async function SupervisorDashboard() {
     .single();
 
   const roleName = (profile?.roles as any)?.name;
-
-  // ATURAN KEAMANAN: Hanya 'supervisor' yang boleh masuk sini.
   if (roleName !== "supervisor") {
     redirect("/portal?error=Akses ditolak. Halaman ini khusus Supervisor.");
   }
 
-  // 3. Ambil Data Statistik
-  const { count: totalSchedules } = await supabase
+  const now = new Date().toISOString();
+
+  // Statistik Jadwal Aktif (Hanya yang masa depan/sedang berjalan)
+  const { count: totalActiveSchedules } = await supabase
     .from("schedules")
     .select("*", { count: "exact", head: true })
-    .eq("status", "approved");
+    .eq("status", "approved")
+    .gt("end_time", now);
 
   const { count: totalPreemptions } = await supabase
     .from("audit_logs")
     .select("*", { count: "exact", head: true })
     .eq("action", "PREEMPT_SCHEDULE");
 
+  // Ambil Data Audit Log
   const { data: logs } = await supabase
     .from("audit_logs")
     .select(`*, profiles (full_name, email)`)
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(30);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
@@ -52,7 +63,8 @@ export default async function SupervisorDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
           <StatCard
             title="Jadwal Aktif"
-            value={totalSchedules || 0}
+            value={totalActiveSchedules || 0}
+            subtext="Sedang & Akan Berjalan"
             color="indigo"
             icon="📅"
           />
@@ -71,69 +83,111 @@ export default async function SupervisorDashboard() {
           />
         </div>
 
-        {/* Audit Log Table */}
+        {/* Tabel Log Aktivitas */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-            <h3 className="font-semibold text-slate-800">Live Audit Logs</h3>
+            <h3 className="font-semibold text-slate-800">
+              Riwayat Aktivitas & Status
+            </h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="text-xs font-semibold tracking-wide text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
-                  <th className="px-6 py-4">Waktu</th>
+                <tr className="text-[11px] font-bold tracking-wider text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+                  <th className="px-6 py-4">Waktu Log</th>
                   <th className="px-6 py-4">User</th>
-                  <th className="px-6 py-4">Aksi</th>
-                  <th className="px-6 py-4">Detail JSON</th>
+                  <th className="px-6 py-4">Role</th>
+                  <th className="px-6 py-4">Resource</th>
+                  <th className="px-6 py-4">Hari Peminjaman</th>
+                  <th className="px-6 py-4">Waktu</th>
+                  <th className="px-6 py-4">Durasi</th>
+                  <th className="px-6 py-4 text-center">Skor</th>
+                  {/* [BARU] Kolom Status */}
+                  <th className="px-6 py-4 text-center">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {logs?.map((log) => (
-                  <tr
-                    key={log.id}
-                    className="hover:bg-slate-50/80 transition-colors"
-                  >
-                    <td className="px-6 py-4 text-sm text-slate-500 font-mono">
-                      {new Date(log.created_at).toLocaleTimeString("id-ID", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                      <span className="block text-xs text-slate-400">
-                        {new Date(log.created_at).toLocaleDateString("id-ID")}
+                {logs?.map((log) => {
+                  const details: any = log.details || {};
+
+                  // Logika Badge Status berdasarkan Aksi Log
+                  let statusBadge;
+                  if (log.action === "CREATE_SCHEDULE") {
+                    statusBadge = (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                        APPROVED
                       </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm">
-                      <div className="font-medium text-slate-900">
-                        {log.profiles?.full_name || "User"}
-                      </div>
-                      <div className="text-xs text-slate-500">
-                        {log.profiles?.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          log.action === "PREEMPT_SCHEDULE"
-                            ? "bg-red-100 text-red-800"
-                            : "bg-indigo-100 text-indigo-800"
-                        }`}
-                      >
-                        {log.action}
+                    );
+                  } else if (log.action === "CANCEL_SCHEDULE") {
+                    statusBadge = (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                        CANCELLED
                       </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <code className="text-[10px] bg-slate-100 p-1.5 rounded text-slate-600 block max-w-xs truncate font-mono">
-                        {JSON.stringify(log.details)}
-                      </code>
-                    </td>
-                  </tr>
-                ))}
-                {(!logs || logs.length === 0) && (
-                  <tr>
-                    <td colSpan={4} className="p-8 text-center text-slate-400">
-                      Belum ada aktivitas.
-                    </td>
-                  </tr>
-                )}
+                    );
+                  } else if (log.action === "PREEMPT_SCHEDULE") {
+                    statusBadge = (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
+                        PREEMPTED
+                      </span>
+                    );
+                  } else {
+                    statusBadge = (
+                      <span className="text-[10px]">{log.action}</span>
+                    );
+                  }
+
+                  return (
+                    <tr
+                      key={log.id}
+                      className="hover:bg-slate-50/80 transition-colors"
+                    >
+                      <td className="px-6 py-4 text-xs text-slate-400 font-mono">
+                        {new Date(log.created_at).toLocaleString("id-ID")}
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-slate-900">
+                        {log.profiles?.full_name || "Unknown"}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                            details.user_role === "admin"
+                              ? "bg-red-100 text-red-700"
+                              : details.user_role === "supervisor"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : "bg-slate-100 text-slate-600"
+                          }`}
+                        >
+                          {details.user_role || "-"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-indigo-600 font-medium">
+                        {details.resource_name || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {details.date ? formatDayDate(details.date) : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600 font-mono">
+                        {details.start_time && details.end_time
+                          ? `${details.start_time} - ${details.end_time}`
+                          : "-"}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600">
+                        {details.duration || "-"}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {details.score ? (
+                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200">
+                            {details.score}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      {/* [BARU] Render Badge Status */}
+                      <td className="px-6 py-4 text-center">{statusBadge}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
