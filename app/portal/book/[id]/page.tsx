@@ -138,7 +138,7 @@ export default async function BookingPage({
               <thead className="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-bold tracking-wider">
                 <tr>
                   <th className="px-6 py-4">Waktu</th>
-                  <th className="px-6 py-4">Status</th> {/* Kolom Baru */}
+                  <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Kegiatan</th>
                   <th className="px-6 py-4">Peminjam</th>
                   <th className="px-6 py-4 text-center">Prioritas</th>
@@ -231,14 +231,20 @@ export default async function BookingPage({
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold border border-indigo-200">
-                            {(Array.isArray(sch.profiles) ? sch.profiles[0]?.full_name : sch.profiles?.full_name)?.charAt(0) || "U"}
+                            {/* Cek apakah array, jika ya ambil indeks 0 */}
+                            {(Array.isArray(sch.profiles)
+                              ? sch.profiles[0]
+                              : sch.profiles
+                            )?.full_name?.charAt(0) || "U"}
                           </div>
                           <div className="text-sm text-slate-600">
-                            {(Array.isArray(sch.profiles) ? sch.profiles[0]?.full_name : sch.profiles?.full_name) || "User"}
+                            {(Array.isArray(sch.profiles)
+                              ? sch.profiles[0]
+                              : sch.profiles
+                            )?.full_name || "User"}
                           </div>
                         </div>
                       </td>
-
                       {/* Kolom Skor/Prioritas */}
                       <td className="px-6 py-4 text-center">
                         <div className="flex flex-col items-center gap-1">
