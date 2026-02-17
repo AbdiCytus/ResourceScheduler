@@ -95,13 +95,15 @@ export default async function HistoryPage() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${
-                        schedule.status === "approved"
-                          ? "bg-green-100 text-green-800"
-                          : schedule.status === "rejected"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-yellow-100 text-yellow-800"
-                      }`}
+  ${
+    schedule.status === "approved"
+      ? "bg-green-100 text-green-800"
+      : schedule.status === "rejected"
+      ? "bg-red-100 text-red-800"
+      : schedule.status === "cancelled"
+      ? "bg-gray-100 text-gray-800" // Tambah warna cancel
+      : "bg-yellow-100 text-yellow-800"
+  }`}
                     >
                       {schedule.status.toUpperCase()}
                     </span>

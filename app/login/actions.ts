@@ -22,7 +22,7 @@ export async function login(formData: FormData) {
 
   // Jika berhasil, refresh data dan redirect
   revalidatePath("/", "layout");
-  redirect("/");
+  redirect("/portal");
 }
 
 export async function signup(formData: FormData) {
