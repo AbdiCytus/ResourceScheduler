@@ -3,85 +3,82 @@ import { login, signup } from "./actions";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ message: string }>; // 1. Ubah tipe jadi Promise
+  searchParams: Promise<{ message: string }>;
 }) {
-  // 2. Await searchParams sebelum digunakan
   const { message } = await searchParams;
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to Scheduler
+    <div className="flex min-h-screen bg-white">
+      {/* Kiri: Form Section */}
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 py-12">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <h2 className="text-3xl font-extrabold text-slate-900 mb-2">
+            Selamat Datang
           </h2>
-          {/* 3. Gunakan variabel 'message' yang sudah di-await */}
+          <p className="text-slate-500 mb-8">
+            Masuk untuk mengelola jadwal Anda.
+          </p>
+
           {message && (
-            <div className="mt-4 p-4 bg-blue-100 text-blue-700 rounded-md text-sm text-center">
+            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 text-sm rounded-r-md animate-pulse">
               {message}
             </div>
           )}
-        </div>
 
-        <form className="mt-8 space-y-6">
-          <div className="-space-y-px rounded-md shadow-sm">
+          <form className="space-y-6">
             <div>
-              <label htmlFor="fullName" className="sr-only">
-                Nama Lengkap (Khusus Daftar)
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Email Address
               </label>
               <input
-                id="fullName"
-                name="fullName"
-                type="text"
-                className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
-                placeholder="Nama Lengkap (Isi hanya jika Daftar)"
-              />
-            </div>
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
                 name="email"
                 type="email"
-                autoComplete="email"
                 required
-                className="relative block w-full border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
-                placeholder="Email address"
+                className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all p-3 bg-slate-50"
+                placeholder="nama@email.com"
               />
             </div>
             <div>
-              <label htmlFor="password" className="sr-only">
+              <label className="block text-sm font-medium text-slate-700 mb-1">
                 Password
               </label>
               <input
-                id="password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
                 required
-                className="relative block w-full rounded-b-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6 px-3"
-                placeholder="Password"
+                className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all p-3 bg-slate-50"
+                placeholder="••••••••"
               />
             </div>
-          </div>
 
-          <div className="flex gap-4">
-            <button
-              formAction={login}
-              className="group relative flex w-full justify-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-            >
-              Log In
-            </button>
-            <button
-              formAction={signup}
-              className="group relative flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-            >
-              Sign Up
-            </button>
-          </div>
-        </form>
+            <div className="flex flex-col gap-3 pt-4">
+              <button
+                formAction={login}
+                className="w-full btn-primary text-center justify-center"
+              >
+                Log In
+              </button>
+              <button
+                formAction={signup}
+                className="w-full bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 font-medium py-2.5 rounded-xl transition-all"
+              >
+                Daftar Akun Baru
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      {/* Kanan: Visual Section (Hidden on Mobile) */}
+      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-indigo-600 to-purple-700 relative overflow-hidden items-center justify-center text-white p-12">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+        <div className="relative z-10 max-w-lg text-center">
+          <h1 className="text-4xl font-bold mb-6">Smart Scheduling System</h1>
+          <p className="text-indigo-100 text-lg">
+            "Sistem yang tidak hanya mencatat jadwal, tapi berpikir untuk Anda.
+            Prioritaskan yang penting, atur yang rutin."
+          </p>
+        </div>
       </div>
     </div>
   );

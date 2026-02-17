@@ -1,55 +1,41 @@
 import { createClient } from "@/utils/supabase/server";
-import BookingForm from "./booking-form"; // Pastikan import ini benar sesuai file yang kita buat sebelumnya
+import BookingForm from "./booking-form";
 
-// 1. Ubah tipe props 'params' menjadi Promise
 export default async function BookingPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const supabase = await createClient();
-
-  // 2. Lakukan 'await' pada params sebelum mengambil id
   const { id } = await params;
 
-  // Ambil detail resource untuk ditampilkan judulnya
   const { data: resource } = await supabase
     .from("resources")
     .select("*, version")
     .eq("id", id)
     .single();
 
-  if (!resource) {
+  if (!resource)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-800">
-            Resource Tidak Ditemukan
-          </h1>
-          <p className="text-gray-500">ID Resource: {id}</p>
-          <a
-            href="/portal"
-            className="text-blue-600 hover:underline mt-4 block"
-          >
-            Kembali ke Portal
-          </a>
-        </div>
+      <div className="text-center p-20 text-slate-500">
+        Resource tidak ditemukan
       </div>
     );
-  }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-lg">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">
-          Ajukan Peminjaman
-        </h1>
-        <p className="text-gray-500 mb-6">
-          Resource:{" "}
-          <span className="font-semibold text-blue-600">{resource.name}</span>
-        </p>
+    <div className="min-h-screen bg-slate-50 py-10 px-4 md:px-8 flex flex-col items-center">
+      <div className="w-full max-w-5xl">
+        <div className="mb-6 text-center">
+          <h1 className="text-2xl font-bold text-slate-900">Form Peminjaman</h1>
+          <p className="text-slate-500">
+            Resource:{" "}
+            <span className="font-bold text-indigo-600">{resource.name}</span>
+            <span className="mx-2">•</span>
+            Kapasitas: {resource.capacity}
+          </p>
+        </div>
 
-        {/* Panggil Client Component Form */}
+        {/* Form Component (Sudah 2 Kolom) */}
         <BookingForm
           resourceId={id}
           resourceName={resource.name}

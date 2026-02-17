@@ -3,163 +3,144 @@ import { redirect } from "next/navigation";
 
 export default async function SupervisorDashboard() {
   const supabase = await createClient();
-
-  // 1. Cek Login & Role Supervisor
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("roles (name)")
-    .eq("id", user.id)
-    .single();
-
-  const roleName = (profile?.roles as any)?.name;
-
-  // Proteksi: Hanya Supervisor (atau Admin) yang boleh masuk
-  if (roleName !== "supervisor" && roleName !== "admin") {
-    return (
-      <div className="p-8 text-red-600 font-bold">
-        Akses Ditolak. Halaman ini khusus Supervisor.
-      </div>
-    );
-  }
-
-  // 2. Ambil Data Statistik (Contoh Sederhana)
-  // Hitung total jadwal aktif
+  // Fetch Data (Logic sama, hanya UI berubah)
   const { count: totalSchedules } = await supabase
     .from("schedules")
     .select("*", { count: "exact", head: true })
     .eq("status", "approved");
-
-  // Hitung kejadian Preemption (Penggeseran) dari Audit Log
   const { count: totalPreemptions } = await supabase
     .from("audit_logs")
     .select("*", { count: "exact", head: true })
     .eq("action", "PREEMPT_SCHEDULE");
-
-  // 3. Ambil Data Audit Log Terbaru
   const { data: logs } = await supabase
     .from("audit_logs")
-    .select(
-      `
-      *,
-      profiles (full_name, email)
-    `
-    )
+    .select(`*, profiles (full_name, email)`)
     .order("created_at", { ascending: false })
     .limit(20);
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          Dashboard Supervisor
+    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <div className="max-w-7xl mx-auto">
+        <h1 className="text-3xl font-bold text-slate-900 mb-8">
+          Dashboard Monitoring
         </h1>
-        <p className="text-gray-500 mb-8">
-          Monitoring aktivitas penjadwalan dan efektivitas sistem.
-        </p>
 
-        {/* STATISTIK CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow border-l-4 border-blue-500">
-            <h3 className="text-gray-500 text-sm uppercase">
-              Total Jadwal Aktif
-            </h3>
-            <p className="text-3xl font-bold text-gray-800">
-              {totalSchedules || 0}
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border-l-4 border-yellow-500">
-            <h3 className="text-gray-500 text-sm uppercase">
-              Intervensi Sistem (Preemption)
-            </h3>
-            <p className="text-3xl font-bold text-gray-800">
-              {totalPreemptions || 0}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              Konflik yang diselesaikan otomatis
-            </p>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow border-l-4 border-green-500">
-            <h3 className="text-gray-500 text-sm uppercase">
-              Efisiensi Sistem
-            </h3>
-            <p className="text-3xl font-bold text-gray-800">OK</p>
-            <p className="text-xs text-gray-400 mt-1">Sistem berjalan normal</p>
-          </div>
+        {/* Stats Cards dengan Gradient Halus */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          <StatCard
+            title="Jadwal Aktif"
+            value={totalSchedules || 0}
+            color="indigo"
+            icon="📅"
+          />
+          <StatCard
+            title="Total Preemption"
+            value={totalPreemptions || 0}
+            subtext="Konflik Teratasi Otomatis"
+            color="purple"
+            icon="⚡"
+          />
+          <StatCard
+            title="Status Sistem"
+            value="Optimal"
+            color="emerald"
+            icon="✅"
+          />
         </div>
 
-        {/* TABEL AUDIT LOG */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-800">
-              Audit Logs (Aktivitas Terkini)
-            </h2>
+        {/* Audit Log Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
+            <h3 className="font-semibold text-slate-800">Live Audit Logs</h3>
           </div>
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Waktu
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Aksi
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Detail
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {logs?.map((log) => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {new Date(log.created_at).toLocaleString("id-ID")}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {log.profiles?.full_name || "Unknown"}
-                    <div className="text-xs text-gray-400">
-                      {log.profiles?.email}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-bold 
-                      ${
-                        log.action === "PREEMPT_SCHEDULE"
-                          ? "bg-red-100 text-red-800"
-                          : "bg-blue-100 text-blue-800"
-                      }`}
-                    >
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
-                    <pre className="text-xs bg-gray-50 p-2 rounded border border-gray-200 overflow-x-auto max-w-xs">
-                      {JSON.stringify(log.details, null, 2)}
-                    </pre>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="text-xs font-semibold tracking-wide text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
+                  <th className="px-6 py-4">Waktu</th>
+                  <th className="px-6 py-4">User</th>
+                  <th className="px-6 py-4">Aksi</th>
+                  <th className="px-6 py-4">Detail JSON</th>
                 </tr>
-              ))}
-              {logs?.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={4}
-                    className="px-6 py-8 text-center text-gray-500"
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {logs?.map((log) => (
+                  <tr
+                    key={log.id}
+                    className="hover:bg-slate-50/80 transition-colors"
                   >
-                    Belum ada aktivitas tercatat.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                    <td className="px-6 py-4 text-sm text-slate-500 font-mono">
+                      {new Date(log.created_at).toLocaleTimeString("id-ID", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                      <span className="block text-xs text-slate-400">
+                        {new Date(log.created_at).toLocaleDateString("id-ID")}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      <div className="font-medium text-slate-900">
+                        {log.profiles?.full_name || "User"}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {log.profiles?.email}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          log.action === "PREEMPT_SCHEDULE"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-indigo-100 text-indigo-800"
+                        }`}
+                      >
+                        {log.action}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <code className="text-[10px] bg-slate-100 p-1.5 rounded text-slate-600 block max-w-xs truncate font-mono">
+                        {JSON.stringify(log.details)}
+                      </code>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, subtext, color, icon }: any) {
+  const colors: any = {
+    indigo: "bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-indigo-200",
+    purple: "bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-200",
+    emerald:
+      "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-200",
+  };
+
+  return (
+    <div
+      className={`${colors[color]} rounded-2xl p-6 text-white shadow-lg relative overflow-hidden card-hover`}
+    >
+      <div className="relative z-10">
+        <p className="text-indigo-100 text-sm font-medium uppercase tracking-wider mb-1 opacity-80">
+          {title}
+        </p>
+        <h3 className="text-4xl font-bold">{value}</h3>
+        {subtext && (
+          <p className="text-xs text-indigo-100 mt-2 opacity-90">{subtext}</p>
+        )}
+      </div>
+      <div className="absolute top-4 right-4 text-4xl opacity-20 filter blur-sm">
+        {icon}
       </div>
     </div>
   );

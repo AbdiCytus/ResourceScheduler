@@ -2,13 +2,12 @@ import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 
-// Helper function untuk format tanggal indonesia
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleString("id-ID", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
+    weekday: "short",
     day: "numeric",
+    month: "short",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
@@ -16,125 +15,151 @@ function formatDate(dateString: string) {
 
 export default async function HistoryPage() {
   const supabase = await createClient();
-
-  // 1. Cek User Login
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // 2. Ambil data Jadwal milik user ini
-  // Kita join dengan tabel 'resources' untuk dapat nama ruangannya
-  const { data: schedules, error } = await supabase
+  const { data: schedules } = await supabase
     .from("schedules")
-    .select(
-      `
-      *,
-      resources (name, type)
-    `
-    )
+    .select(`*, resources (name, type)`)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">
-            Riwayat Peminjaman Saya
-          </h1>
-          <Link
-            href="/portal"
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700"
-          >
+    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Riwayat Peminjaman
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Lacak status pengajuan dan skor prioritas Anda.
+            </p>
+          </div>
+          <Link href="/portal" className="btn-primary shadow-indigo-200">
             + Ajukan Baru
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Resource
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Kegiatan
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Waktu
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {schedules?.map((schedule) => (
-                <tr key={schedule.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">
-                      {schedule.resources?.name || "Resource Dihapus"}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {schedule.resources?.type}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900 font-semibold">
-                      {schedule.title}
-                    </div>
-                    <div className="text-sm text-gray-500 line-clamp-1">
-                      {schedule.description}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    <div>Mulai: {formatDate(schedule.start_time)}</div>
-                    <div>Selesai: {formatDate(schedule.end_time)}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-  ${
-    schedule.status === "approved"
-      ? "bg-green-100 text-green-800"
-      : schedule.status === "rejected"
-      ? "bg-red-100 text-red-800"
-      : schedule.status === "cancelled"
-      ? "bg-gray-100 text-gray-800" // Tambah warna cancel
-      : "bg-yellow-100 text-yellow-800"
-  }`}
-                    >
-                      {schedule.status.toUpperCase()}
-                    </span>
-                    <div className="mt-2 text-xs text-gray-500">
-                      <span className="font-bold">
-                        Score: {schedule.calculated_score}
-                      </span>
-                      <span className="ml-2">({schedule.priority_level})</span>
-                    </div>
-                    {schedule.rejection_reason && (
-                      <p className="text-xs text-red-600 mt-1">
-                        Alasan: {schedule.rejection_reason}
-                      </p>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {(!schedules || schedules.length === 0) && (
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
-                  <td
-                    colSpan={4}
-                    className="px-6 py-8 text-center text-gray-500"
-                  >
-                    Belum ada riwayat peminjaman.
-                  </td>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Resource
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Kegiatan
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Waktu
+                  </th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Skor & Status
+                  </th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {schedules?.map((schedule) => (
+                  <tr
+                    key={schedule.id}
+                    className="hover:bg-slate-50/80 transition-colors group"
+                  >
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                        {schedule.resources?.name || "Resource Dihapus"}
+                      </div>
+                      <span
+                        className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium mt-1 ${
+                          schedule.resources?.type === "Room"
+                            ? "bg-indigo-50 text-indigo-700"
+                            : "bg-orange-50 text-orange-700"
+                        }`}
+                      >
+                        {schedule.resources?.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-slate-900">
+                        {schedule.title}
+                      </div>
+                      <div className="text-xs text-slate-500 mt-0.5 max-w-xs truncate">
+                        {schedule.description || "-"}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono bg-slate-100 px-1.5 rounded">
+                          Mulai
+                        </span>
+                        {formatDate(schedule.start_time)}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-xs font-mono bg-slate-100 px-1.5 rounded">
+                          Selesai
+                        </span>
+                        {formatDate(schedule.end_time)}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col gap-2">
+                        <StatusBadge status={schedule.status} />
+                        {/* Priority Score Indicator */}
+                        <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 w-fit">
+                          <span>
+                            ⚡ Score:{" "}
+                            <b className="text-slate-700">
+                              {schedule.calculated_score}
+                            </b>
+                          </span>
+                        </div>
+                        {schedule.rejection_reason && (
+                          <p className="text-[10px] text-red-500 bg-red-50 p-1.5 rounded border border-red-100 max-w-[150px] leading-tight">
+                            {schedule.rejection_reason}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {(!schedules || schedules.length === 0) && (
+                  <tr>
+                    <td
+                      colSpan={4}
+                      className="px-6 py-12 text-center text-slate-400"
+                    >
+                      Belum ada riwayat. Mulai ajukan peminjaman sekarang!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const styles: any = {
+    approved: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    rejected: "bg-red-100 text-red-700 border-red-200",
+    cancelled:
+      "bg-slate-100 text-slate-600 border-slate-200 line-through decoration-slate-400",
+    pending: "bg-amber-100 text-amber-700 border-amber-200",
+  };
+
+  return (
+    <span
+      className={`inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-bold border ${
+        styles[status] || styles.pending
+      } uppercase tracking-wide w-fit`}
+    >
+      {status}
+    </span>
   );
 }

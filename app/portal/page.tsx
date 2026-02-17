@@ -2,16 +2,19 @@ import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-export default async function UserPortal() {
+export default async function UserPortal({
+  searchParams,
+}: {
+  searchParams: Promise<{ success: string }>;
+}) {
   const supabase = await createClient();
-
-  // 1. Cek Login
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // 2. Ambil data Resources yang Aktif
+  const { success } = await searchParams;
+
   const { data: resources } = await supabase
     .from("resources")
     .select("*")
@@ -19,52 +22,61 @@ export default async function UserPortal() {
     .order("name");
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-800">
-            Portal Peminjaman
-          </h1>
-          <form action="/auth/signout" method="post">
-            {/* Nanti kita buat tombol logout yang proper, sementara placeholder dulu */}
-            <Link href="/" className="text-blue-600 hover:underline">
-              Kembali ke Home
-            </Link>
-          </form>
+    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800">
+              Portal Peminjaman
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Pilih ruangan atau alat yang tersedia.
+            </p>
+          </div>
+          {success && (
+            <div className="bg-green-100 text-green-800 px-4 py-2 rounded-lg text-sm font-medium border border-green-200 shadow-sm animate-bounce">
+              ✅ {success}
+            </div>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Grid Card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {resources?.map((res) => (
             <div
               key={res.id}
-              className="bg-white rounded-lg shadow hover:shadow-md transition p-6 border border-gray-100"
+              className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between h-full"
             >
-              <div className="flex items-center justify-between mb-2">
-                <span
-                  className={`text-xs font-bold px-2 py-1 rounded-full ${
-                    res.type === "Room"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-orange-100 text-orange-700"
-                  }`}
-                >
-                  {res.type}
-                </span>
-                <span className="text-sm text-gray-500">
-                  Kap: {res.capacity}
-                </span>
+              <div>
+                <div className="flex justify-between items-start mb-4">
+                  <div
+                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${
+                      res.type === "Room"
+                        ? "bg-indigo-50 text-indigo-600"
+                        : "bg-orange-50 text-orange-600"
+                    }`}
+                  >
+                    {res.type === "Room" ? "🏢" : "💻"}
+                  </div>
+                  <span className="bg-slate-100 text-slate-600 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                    Kap: {res.capacity}
+                  </span>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">
+                  {res.name}
+                </h3>
+                <p className="text-slate-500 text-sm line-clamp-2 mb-6">
+                  {res.description ||
+                    "Fasilitas lengkap untuk kebutuhan produktivitas Anda."}
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">
-                {res.name}
-              </h3>
-              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                {res.description || "Tidak ada deskripsi."}
-              </p>
 
               <Link
                 href={`/portal/book/${res.id}`}
-                className="block w-full text-center bg-indigo-600 text-white py-2 rounded-md font-semibold hover:bg-indigo-700 transition"
+                className="w-full block text-center bg-white border-2 border-indigo-100 text-indigo-600 font-bold py-2.5 rounded-xl hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all"
               >
-                Ajukan Jadwal
+                Ajukan Jadwal →
               </Link>
             </div>
           ))}
