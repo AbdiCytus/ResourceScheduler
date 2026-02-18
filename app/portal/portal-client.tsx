@@ -43,11 +43,24 @@ export default function PortalClient({
   );
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  // --- STATE SCHEDULE ---
+  // --- STATE SCHEDULE & TIME ---
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [now, setNow] = useState(new Date());
 
-  // [BARU] Filter Jadwal Aktif
-  const now = new Date();
+  // [UPDATE] Timer untuk update waktu 'now' setiap menit
+  // Agar jadwal yang baru saja selesai langsung hilang dari list secara realtime
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNow(new Date());
+    }, 60000); // Update setiap 60 detik
+    return () => clearInterval(interval);
+  }, []);
+
+  // [LOGIC PENTING] Filter Jadwal Aktif
+  // 1. Waktu selesai (end_time) HARUS lebih besar dari sekarang (now).
+  //    Artinya: Jadwal masa lalu (kemarin/tadi) TIDAK TAMPIL.
+  // 2. Semua status (Pending/Rejected/Cancelled) TETAP TAMPIL jika waktunya belum lewat (Masa Depan),
+  //    agar user tahu status pengajuannya.
   const activeSchedules = schedules.filter((s) => new Date(s.end_time) > now);
 
   // --- LOGIC: FILTER RESOURCES ---
@@ -77,7 +90,7 @@ export default function PortalClient({
 
   return (
     <div className="space-y-6">
-      {/* --- [UPDATE] TABS NAVIGATION FULL WIDTH --- */}
+      {/* TABS NAVIGATION FULL WIDTH */}
       <div className="bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 grid grid-cols-2 gap-1">
         <button
           onClick={() => setActiveTab("resources")}
@@ -132,11 +145,9 @@ export default function PortalClient({
       {/* ======================= TAB 1: RESOURCES ======================= */}
       {activeTab === "resources" && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* [UPDATE] SEARCH & FILTER BAR (FILTER PINDAH KIRI) */}
+          {/* SEARCH & FILTER BAR */}
           <div className="flex flex-col md:flex-row gap-3 mb-6 items-center">
-            {/* Grup Filter & Sort (Sekarang di Kiri) */}
             <div className="flex gap-2 w-full md:w-auto shrink-0">
-              {/* Tombol Filter Tipe */}
               <div className="relative">
                 <select
                   className="appearance-none pl-10 pr-8 py-3 rounded-xl border-slate-200 bg-white text-sm font-bold text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500 w-full cursor-pointer hover:bg-slate-50 transition"
@@ -147,7 +158,6 @@ export default function PortalClient({
                   <option value="Room">Ruangan</option>
                   <option value="Equipment">Peralatan</option>
                 </select>
-                {/* Icon Filter */}
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -166,7 +176,6 @@ export default function PortalClient({
                 </div>
               </div>
 
-              {/* Tombol Sort */}
               <button
                 onClick={() =>
                   setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"))
@@ -191,7 +200,6 @@ export default function PortalClient({
               </button>
             </div>
 
-            {/* Search Bar (Expand mengisi sisa ruang) */}
             <div className="relative w-full">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
                 <svg
@@ -219,7 +227,6 @@ export default function PortalClient({
             </div>
           </div>
 
-          {/* GRID RESOURCES */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredResources.map((res) => {
               const isClosingDown = !!res.scheduled_for_deletion_at;
@@ -247,7 +254,7 @@ export default function PortalClient({
                       </div>
 
                       {isClosingDown ? (
-                        <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full border border-red-200">
+                        <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full border border-red-200 animate-pulse">
                           SEGERA DIHAPUS
                         </span>
                       ) : isInactive ? (
@@ -329,20 +336,19 @@ export default function PortalClient({
       {/* ======================= TAB 2: SCHEDULE ======================= */}
       {activeTab === "schedule" && (
         <div className="animate-in fade-in slide-in-from-right-2 duration-300">
-          {/* CONTAINER UTAMA */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-220px)] min-h-[500px]">
-            {/* KOLOM KIRI: KALENDER */}
             <div className="lg:col-span-4 h-full">
+              {/* KALENDER: Tetap bersih, hanya Approved yang muncul sebagai titik */}
               <CalendarView
-                schedules={activeSchedules}
+                schedules={activeSchedules.filter(
+                  (s) => s.status === "approved"
+                )}
                 selectedDate={selectedDate}
                 onSelectDate={setSelectedDate}
               />
             </div>
 
-            {/* KOLOM KANAN: LIST DETAIL */}
             <div className="lg:col-span-8 bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-full overflow-hidden">
-              {/* Header List */}
               <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
                 <div>
                   <h3 className="font-bold text-slate-800 text-lg">
@@ -360,7 +366,6 @@ export default function PortalClient({
                 </div>
               </div>
 
-              {/* Scrollable List Area */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {selectedDateSchedules.length > 0 ? (
                   selectedDateSchedules.map((sch) => {
@@ -373,13 +378,43 @@ export default function PortalClient({
                         : sch.profiles
                       )?.full_name || "User";
 
+                    // Logic Styling Status
+                    let statusStyle = "";
+                    let statusBadge = "";
+
+                    switch (sch.status) {
+                      case "approved":
+                        statusStyle =
+                          "bg-white border-slate-200 hover:border-indigo-300";
+                        statusBadge =
+                          "bg-emerald-100 text-emerald-700 border-emerald-200";
+                        break;
+                      case "pending":
+                        statusStyle = "bg-amber-50/50 border-amber-200";
+                        statusBadge =
+                          "bg-amber-100 text-amber-700 border-amber-200";
+                        break;
+                      case "cancelled":
+                        statusStyle =
+                          "bg-slate-50 border-slate-200 opacity-75 grayscale";
+                        statusBadge =
+                          "bg-slate-200 text-slate-600 border-slate-300";
+                        break;
+                      case "rejected":
+                        statusStyle = "bg-red-50/50 border-red-200 opacity-80";
+                        statusBadge = "bg-red-100 text-red-700 border-red-200";
+                        break;
+                      default:
+                        statusStyle = "bg-white border-slate-200";
+                        statusBadge = "bg-slate-100 text-slate-600";
+                    }
+
                     return (
                       <div
                         key={sch.id}
-                        className="group flex flex-col sm:flex-row gap-4 p-4 rounded-xl border border-slate-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition items-center"
+                        className={`group flex flex-col sm:flex-row gap-4 p-4 rounded-xl border transition items-center ${statusStyle}`}
                       >
-                        {/* Waktu & Durasi */}
-                        <div className="sm:w-24 shrink-0 flex flex-col justify-center sm:text-center border-b sm:border-b-0 sm:border-r border-slate-100 sm:pr-4 pb-2 sm:pb-0 h-full">
+                        <div className="sm:w-24 shrink-0 flex flex-col justify-center sm:text-center border-b sm:border-b-0 sm:border-r border-slate-200/60 sm:pr-4 pb-2 sm:pb-0 h-full">
                           <span className="text-lg font-bold text-slate-800">
                             {formatTime(sch.start_time)}
                           </span>
@@ -391,12 +426,18 @@ export default function PortalClient({
                           </span>
                         </div>
 
-                        {/* Detail Info */}
                         <div className="flex-1 w-full">
-                          <div className="flex justify-between items-start mb-1">
-                            <h4 className="font-bold text-slate-900 group-hover:text-indigo-700 transition text-base">
+                          <div className="flex justify-between items-start mb-1 gap-2">
+                            <h4 className="font-bold text-slate-900 text-base line-clamp-1">
                               {sch.title}
                             </h4>
+
+                            {/* Badge Status */}
+                            <span
+                              className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${statusBadge}`}
+                            >
+                              {sch.status}
+                            </span>
                           </div>
 
                           <div className="flex flex-col gap-1 text-xs text-slate-500">
@@ -421,7 +462,6 @@ export default function PortalClient({
                           </div>
                         </div>
 
-                        {/* Action: Badge Urgensi DI ATAS Tombol Lihat */}
                         <div className="flex flex-col items-end justify-center gap-2 min-w-[80px]">
                           <span
                             className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${

@@ -12,7 +12,6 @@ export default async function UserPortal({
 }) {
   const supabase = await createClient();
 
-  // 1. Auth Check
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -26,13 +25,11 @@ export default async function UserPortal({
   const roleName = (profile?.roles as any)?.name;
   const isSupervisor = roleName === "supervisor";
 
-  // 2. Fetch Resources
   const { data: allResources } = await supabase
     .from("resources")
     .select("*")
     .order("name");
 
-  // Filter resource yang sudah expired (delete logic)
   const now = new Date();
   const resources =
     allResources?.filter((res) => {
@@ -40,30 +37,28 @@ export default async function UserPortal({
       return new Date(res.scheduled_for_deletion_at) > now;
     }) || [];
 
-  // 3. Fetch Schedules (Untuk Kalender & List)
+  // [UPDATE] HAPUS FILTER STATUS APPROVED
+  // Kita ingin mengambil semua status agar bisa ditampilkan warnanya di frontend
   const { data: allSchedules } = await supabase
     .from("schedules")
     .select(
       `
-      id, title, start_time, end_time, resource_id, priority_level, quantity_borrowed,
+      id, title, start_time, end_time, resource_id, priority_level, quantity_borrowed, status,
       resources(name), profiles(full_name)
     `
     )
-    .eq("status", "approved")
-    // Ambil jadwal 1 tahun ke belakang sampai masa depan (agar kalender tidak kosong saat back month)
-    // Atau cukup aktif saja jika traffic tinggi. Disini saya ambil >= awal bulan ini
+    // .eq("status", "approved") <--- BARIS INI DIHAPUS
     .gte(
       "start_time",
       new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
     )
     .order("start_time")
-    .limit(500); // Limit keamanan
+    .limit(500);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 flex flex-col">
       <CustomToast />
 
-      {/* Header Halaman (Tetap di Server Component) */}
       <div className="max-w-7xl mx-auto w-full mb-6">
         <h1 className="text-3xl font-bold text-slate-900">Portal Peminjaman</h1>
         <p className="text-slate-500 mt-1">
@@ -73,7 +68,6 @@ export default async function UserPortal({
         </p>
       </div>
 
-      {/* Client Component (Tabs, Search, Calendar Logic) */}
       <div className="max-w-7xl mx-auto w-full flex-1">
         <PortalClient
           resources={resources}
