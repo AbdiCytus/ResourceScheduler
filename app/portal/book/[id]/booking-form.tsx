@@ -1,176 +1,181 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { submitSchedule } from "../../actions";
 
-const initialState = {
-  error: "",
-};
-
+// [BARU] Prop equipmentList
 export default function BookingForm({
   resourceId,
   resourceName,
   currentVersion,
+  equipmentList,
 }: {
   resourceId: string;
   resourceName: string;
   currentVersion: number;
+  equipmentList: any[];
 }) {
-  const [state, formAction, isPending] = useActionState(
-    submitSchedule,
-    initialState
-  );
+  const [state, formAction, isPending] = useActionState(submitSchedule, null);
 
-  // Class styling input yang dipertegas bordernya
-  const inputClass =
-    "w-full rounded-xl border border-slate-300 bg-white p-3 text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all shadow-sm placeholder:text-slate-400";
+  // State untuk kalkulasi jam (Opsional, untuk UX lebih baik bisa ditambah di sini)
 
   return (
     <form
       action={formAction}
       className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden"
     >
+      {/* Hidden Fields */}
       <input type="hidden" name="resourceId" value={resourceId} />
-      <input type="hidden" name="expectedVersion" value={currentVersion || 1} />
+      <input type="hidden" name="expectedVersion" value={currentVersion} />
 
+      {/* ERROR MESSAGE (Smart Recommendation muncul di sini) */}
       {state?.error && (
-        <div className="bg-red-50 text-red-700 px-6 py-4 text-sm border-b border-red-100 flex items-start gap-3 animate-pulse">
-          <span className="text-lg">⚠️</span>
-          <p>{state.error}</p>
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 m-6 mb-0 rounded-r-lg animate-pulse">
+          <div className="flex">
+            <div className="flex-shrink-0 text-red-500">⚠️</div>
+            <div className="ml-3">
+              <h3 className="text-sm font-bold text-red-800">Booking Gagal</h3>
+              <div className="mt-1 text-sm text-red-700 whitespace-pre-wrap font-medium">
+                {state.error}
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2">
-        {/* KOLOM KIRI */}
-        <div className="p-6 lg:p-8 bg-slate-50 border-b lg:border-b-0 lg:border-r border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-1">
-            Detail Kegiatan
-          </h2>
-          <p className="text-slate-500 text-sm mb-6">
-            Informasi dasar mengenai peminjaman.
-          </p>
-
-          <div className="space-y-5">
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                Judul Kegiatan
-              </label>
-              {/* Tambahkan inputClass disini */}
-              <input
-                name="title"
-                required
-                placeholder="Contoh: Rapat Mingguan Tim IT"
-                className={inputClass}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                Tingkat Urgensi
-              </label>
-              <div className="relative">
-                {/* Tambahkan inputClass disini */}
-                <select
-                  name="urgency"
-                  className={`${inputClass} appearance-none`}
-                >
-                  <option value="low">☕ Low (Rutin/Biasa)</option>
-                  <option value="medium">🚩 Medium (Penting)</option>
-                  <option value="high">🔥 High (Mendesak)</option>
-                  <option value="critical">🚨 Critical (Darurat/VIP)</option>
-                </select>
-                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
-                  ▼
-                </div>
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1.5">
-                *Semakin tinggi urgensi, semakin besar skor prioritas.
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                Deskripsi Tambahan
-              </label>
-              {/* Tambahkan inputClass disini */}
-              <textarea
-                name="description"
-                rows={4}
-                className={inputClass}
-                placeholder="Catatan tambahan..."
-              ></textarea>
-            </div>
+      <div className="p-6 md:p-8 space-y-6">
+        {/* Row 1: Judul & Urgensi */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+              Nama Kegiatan
+            </label>
+            <input
+              name="title"
+              required
+              placeholder="Contoh: Rapat Koordinasi Q1"
+              className="w-full rounded-xl border-slate-300 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+              Tingkat Urgensi
+            </label>
+            <select
+              name="urgency"
+              required
+              className="w-full rounded-xl border-slate-300 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+            >
+              <option value="">-- Pilih Urgensi --</option>
+              <option value="low">Low - Rutinitas (Score +10)</option>
+              <option value="medium">Medium - Standar (Score +20)</option>
+              <option value="high">High - Penting (Score +30)</option>
+              <option value="critical">Critical - Darurat (Score +40)</option>
+            </select>
+            <p className="text-[10px] text-slate-400 mt-1">
+              Urgensi menentukan prioritas jika terjadi bentrok.
+            </p>
           </div>
         </div>
 
-        {/* KOLOM KANAN */}
-        <div className="p-6 lg:p-8 flex flex-col justify-between h-full bg-white">
+        {/* Row 2: Waktu */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div>
-            <h2 className="text-lg font-bold text-slate-800 mb-1">
-              Waktu Peminjaman
-            </h2>
-            <p className="text-slate-500 text-sm mb-6">
-              Tentukan jadwal pelaksanaan.
-            </p>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+              Tanggal
+            </label>
+            <input
+              name="date"
+              type="date"
+              required
+              className="w-full rounded-xl border-slate-300 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+              Jam Mulai
+            </label>
+            <input
+              name="startTime"
+              type="time"
+              required
+              className="w-full rounded-xl border-slate-300 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+              Jam Selesai
+            </label>
+            <input
+              name="endTime"
+              type="time"
+              required
+              className="w-full rounded-xl border-slate-300 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+        </div>
 
-            <div className="space-y-5">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                  Tanggal
+        {/* [BARU] Row 3: Resource Bundling (Tambahan Alat) */}
+        {equipmentList && equipmentList.length > 0 && (
+          <div className="bg-indigo-50 rounded-xl p-4 border border-indigo-100">
+            <label className="block text-xs font-bold text-indigo-700 uppercase mb-3 flex items-center gap-2">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-4 h-4"
+              >
+                <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+              </svg>
+              Tambahkan Alat (Resource Bundling)
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {equipmentList.map((item) => (
+                <label
+                  key={item.id}
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
+                  <input
+                    type="checkbox"
+                    name="bundledResources"
+                    value={item.id}
+                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm text-slate-600 group-hover:text-indigo-700 transition-colors">
+                    {item.name}{" "}
+                    <span className="text-[10px] text-slate-400">
+                      ({item.capacity} Unit)
+                    </span>
+                  </span>
                 </label>
-                {/* Tambahkan inputClass disini */}
-                <input
-                  name="date"
-                  type="date"
-                  required
-                  className={inputClass}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                    Jam Mulai
-                  </label>
-                  {/* Tambahkan inputClass disini */}
-                  <input
-                    name="startTime"
-                    type="time"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                    Jam Selesai
-                  </label>
-                  {/* Tambahkan inputClass disini */}
-                  <input
-                    name="endTime"
-                    type="time"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-              </div>
+              ))}
             </div>
+            <p className="text-[10px] text-indigo-400 mt-2">
+              *Sistem akan mengecek ketersediaan alat ini pada jam yang sama.
+            </p>
           </div>
+        )}
 
-          <div className="mt-8 lg:mt-0 pt-8 border-t border-slate-100">
-            <button
-              type="submit"
-              disabled={isPending}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold py-3.5 rounded-xl shadow-lg shadow-indigo-200 hover:shadow-indigo-300 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2"
-            >
-              {isPending ? "Memproses..." : "Kirim Pengajuan Jadwal"}
-            </button>
-            <a
-              href="/portal"
-              className="block text-center text-sm text-slate-400 mt-4 hover:text-slate-600 transition-colors"
-            >
-              Batal
-            </a>
-          </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+            Deskripsi (Opsional)
+          </label>
+          <textarea
+            name="description"
+            rows={3}
+            placeholder="Detail tambahan kegiatan..."
+            className="w-full rounded-xl border-slate-300 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+          ></textarea>
+        </div>
+
+        <div className="pt-4">
+          <button
+            type="submit"
+            disabled={isPending}
+            className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-indigo-200 transition-all active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed"
+          >
+            {isPending ? "Memproses Jadwal..." : "Ajukan Jadwal Sekarang"}
+          </button>
         </div>
       </div>
     </form>

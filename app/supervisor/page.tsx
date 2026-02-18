@@ -1,20 +1,32 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 
-// Helper Format Hari & Tanggal
+// Helper Format Hari & Tanggal (Lebih Ringkas)
 function formatDayDate(dateString: string) {
   if (!dateString) return "-";
   return new Date(dateString).toLocaleDateString("id-ID", {
-    weekday: "long",
+    weekday: "short", // Sen
+    day: "numeric", // 20
+    month: "short", // Feb
+    year: "numeric", // 2024
+  });
+}
+
+// Helper Format Waktu Log (Agar aman dari Hydration Error)
+function formatLogTime(dateString: string) {
+  if (!dateString) return "-";
+  return new Date(dateString).toLocaleString("id-ID", {
     day: "numeric",
     month: "short",
-    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
 export default async function SupervisorDashboard() {
   const supabase = await createClient();
 
+  // 1. Cek Login & Role
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -33,7 +45,7 @@ export default async function SupervisorDashboard() {
 
   const now = new Date().toISOString();
 
-  // Statistik Jadwal Aktif (Hanya yang masa depan/sedang berjalan)
+  // 2. Statistik Jadwal Aktif
   const { count: totalActiveSchedules } = await supabase
     .from("schedules")
     .select("*", { count: "exact", head: true })
@@ -45,7 +57,7 @@ export default async function SupervisorDashboard() {
     .select("*", { count: "exact", head: true })
     .eq("action", "PREEMPT_SCHEDULE");
 
-  // Ambil Data Audit Log
+  // 3. Ambil Data Audit Log
   const { data: logs } = await supabase
     .from("audit_logs")
     .select(`*, profiles (full_name, email)`)
@@ -98,11 +110,10 @@ export default async function SupervisorDashboard() {
                   <th className="px-6 py-4">User</th>
                   <th className="px-6 py-4">Role</th>
                   <th className="px-6 py-4">Resource</th>
-                  <th className="px-6 py-4">Hari Peminjaman</th>
-                  <th className="px-6 py-4">Waktu</th>
+                  <th className="px-6 py-4">Hari</th>
+                  <th className="px-6 py-4">Jam</th>
                   <th className="px-6 py-4">Durasi</th>
                   <th className="px-6 py-4 text-center">Skor</th>
-                  {/* [BARU] Kolom Status */}
                   <th className="px-6 py-4 text-center">Status</th>
                 </tr>
               </thead>
@@ -110,43 +121,22 @@ export default async function SupervisorDashboard() {
                 {logs?.map((log) => {
                   const details: any = log.details || {};
 
-                  // Logika Badge Status berdasarkan Aksi Log
-                  let statusBadge;
-                  if (log.action === "CREATE_SCHEDULE") {
-                    statusBadge = (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                        APPROVED
-                      </span>
-                    );
-                  } else if (log.action === "CANCEL_SCHEDULE") {
-                    statusBadge = (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                        CANCELLED
-                      </span>
-                    );
-                  } else if (log.action === "PREEMPT_SCHEDULE") {
-                    statusBadge = (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
-                        PREEMPTED
-                      </span>
-                    );
-                  } else {
-                    statusBadge = (
-                      <span className="text-[10px]">{log.action}</span>
-                    );
-                  }
-
                   return (
                     <tr
                       key={log.id}
                       className="hover:bg-slate-50/80 transition-colors"
                     >
-                      <td className="px-6 py-4 text-xs text-slate-400 font-mono">
-                        {new Date(log.created_at).toLocaleString("id-ID")}
+                      {/* Waktu Log */}
+                      <td className="px-6 py-4 text-xs text-slate-400 font-mono whitespace-nowrap">
+                        {formatLogTime(log.created_at)}
                       </td>
+
+                      {/* User */}
                       <td className="px-6 py-4 text-sm font-medium text-slate-900">
                         {log.profiles?.full_name || "Unknown"}
                       </td>
+
+                      {/* Role */}
                       <td className="px-6 py-4">
                         <span
                           className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
@@ -160,34 +150,70 @@ export default async function SupervisorDashboard() {
                           {details.user_role || "-"}
                         </span>
                       </td>
+
+                      {/* Resource */}
                       <td className="px-6 py-4 text-sm text-indigo-600 font-medium">
                         {details.resource_name || "-"}
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600">
+
+                      {/* Hari */}
+                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
                         {details.date ? formatDayDate(details.date) : "-"}
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 font-mono">
+
+                      {/* Jam */}
+                      <td className="px-6 py-4 text-sm text-slate-600 font-mono whitespace-nowrap">
                         {details.start_time && details.end_time
                           ? `${details.start_time} - ${details.end_time}`
                           : "-"}
                       </td>
+
+                      {/* Durasi */}
                       <td className="px-6 py-4 text-sm text-slate-600">
                         {details.duration || "-"}
                       </td>
+
+                      {/* Skor */}
                       <td className="px-6 py-4 text-center">
                         {details.score ? (
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200">
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200">
                             {details.score}
                           </span>
                         ) : (
                           "-"
                         )}
                       </td>
-                      {/* [BARU] Render Badge Status */}
-                      <td className="px-6 py-4 text-center">{statusBadge}</td>
+
+                      {/* Status Badge */}
+                      <td className="px-6 py-4 text-center">
+                        {log.action === "CREATE_SCHEDULE" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
+                            APPROVED
+                          </span>
+                        ) : log.action === "CANCEL_SCHEDULE" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                            CANCELLED
+                          </span>
+                        ) : log.action === "PREEMPT_SCHEDULE" ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
+                            PREEMPTED
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-slate-500">
+                            {log.action}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
+                {(!logs || logs.length === 0) && (
+                  <tr>
+                    <td colSpan={9} className="p-8 text-center text-slate-400">
+                      Belum ada aktivitas.
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
