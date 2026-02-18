@@ -8,11 +8,14 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
 
+  // [BARU] Logika Cek Admin Active (True jika url diawali /admin)
+  const isAdminActive = pathname.startsWith("/admin");
+
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm transition-all">
       <div className="mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          {/* BAGIAN KIRI: LOGO */}
+          {/* LOGO */}
           <Link href="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md group-hover:scale-110 transition-transform">
               S
@@ -22,17 +25,15 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
             </span>
           </Link>
 
-          {/* BAGIAN KANAN: MENU + PROFILE */}
+          {/* MENU */}
           <div className="flex items-center gap-6">
             <div className="hidden md:flex space-x-2">
               {user && (
                 <>
-                  {/* Portal: Semua user bisa akses (Supervisor hanya pantau) */}
                   <NavLink href="/portal" activePath={pathname}>
                     Portal
                   </NavLink>
 
-                  {/* Riwayat: Sembunyikan untuk Supervisor */}
                   {role !== "supervisor" && (
                     <NavLink href="/portal/history" activePath={pathname}>
                       Riwayat
@@ -41,15 +42,18 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                 </>
               )}
 
+              {/* [UPDATE] Gunakan isAdminActive untuk override logic aktif */}
               {role === "admin" && (
                 <NavLink
                   href="/admin/resources"
                   activePath={pathname}
                   isSpecial
+                  forceActive={isAdminActive} // Prop baru
                 >
                   Admin Panel
                 </NavLink>
               )}
+
               {role === "supervisor" && (
                 <NavLink href="/supervisor" activePath={pathname} isSpecial>
                   Dashboard
@@ -93,18 +97,24 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
   );
 }
 
+// [UPDATE] Tambahkan prop forceActive
 function NavLink({
   href,
   children,
   activePath,
   isSpecial,
+  forceActive,
 }: {
   href: string;
   children: React.ReactNode;
   activePath: string;
   isSpecial?: boolean;
+  forceActive?: boolean;
 }) {
-  const isActive = activePath === href;
+  // Jika forceActive true, maka anggap aktif. Jika tidak, cek kesamaan URL.
+  const isActive =
+    forceActive !== undefined ? forceActive : activePath === href;
+
   const baseClass =
     "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200";
 
