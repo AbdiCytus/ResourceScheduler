@@ -61,28 +61,23 @@ export default function CalendarView({ schedules }: { schedules: any[] }) {
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      {/* --- [UPDATE] HEADER KALENDER --- */}
+      {/* Header Kalender */}
       <div className="p-4 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
-        {/* Tombol Kiri (Prev) */}
         <button
           onClick={handlePrev}
           className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 transition shadow-sm hover:shadow border border-transparent hover:border-slate-200"
-          title="Bulan Sebelumnya"
         >
           ◀
         </button>
 
-        {/* Judul Tengah */}
         <h3 className="font-bold text-slate-800 text-sm select-none">
           {monthNames[currentMonth]}{" "}
           <span className="text-slate-500 font-medium">{currentYear}</span>
         </h3>
 
-        {/* Tombol Kanan (Next) */}
         <button
           onClick={handleNext}
           className="p-1.5 hover:bg-white rounded-lg text-slate-400 hover:text-indigo-600 transition shadow-sm hover:shadow border border-transparent hover:border-slate-200"
-          title="Bulan Selanjutnya"
         >
           ▶
         </button>
@@ -135,27 +130,92 @@ export default function CalendarView({ schedules }: { schedules: any[] }) {
                 </span>
 
                 {/* Dot Indicators */}
-                <div className="flex flex-wrap justify-center gap-0.5 w-full px-0.5">
-                  {daySchedules.slice(0, 4).map((s) => (
-                    <Link
-                      key={s.id}
-                      href={`/portal/book/${s.resource_id}`}
-                      className="block"
-                    >
-                      <div
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          s.priority_level === "high" ||
-                          s.priority_level === "critical"
-                            ? "bg-orange-400"
-                            : "bg-indigo-400"
-                        } hover:scale-150 transition cursor-pointer`}
-                        title={`${new Date(s.start_time).toLocaleTimeString(
-                          "id-ID",
-                          { hour: "2-digit", minute: "2-digit" }
-                        )} - ${s.title}`}
-                      ></div>
-                    </Link>
-                  ))}
+                <div className="flex flex-wrap justify-center gap-0.5 w-full px-0.5 relative">
+                  {daySchedules.slice(0, 4).map((s) => {
+                    const borrowerName =
+                      (Array.isArray(s.profiles) ? s.profiles[0] : s.profiles)
+                        ?.full_name || "User";
+                    const resourceName = s.resources?.name || "Resource"; // Ambil Nama Resource
+                    const startTime = new Date(s.start_time).toLocaleTimeString(
+                      "id-ID",
+                      { hour: "2-digit", minute: "2-digit" }
+                    );
+                    const endTime = new Date(s.end_time).toLocaleTimeString(
+                      "id-ID",
+                      { hour: "2-digit", minute: "2-digit" }
+                    );
+                    const isHighPriority =
+                      s.priority_level === "high" ||
+                      s.priority_level === "critical";
+
+                    return (
+                      <Link
+                        key={s.id}
+                        href={`/portal/book/${s.resource_id}`}
+                        className="block relative group/dot"
+                      >
+                        {/* THE DOT */}
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            isHighPriority ? "bg-orange-400" : "bg-indigo-400"
+                          } hover:scale-150 transition cursor-pointer`}
+                        ></div>
+
+                        {/* CUSTOM TOOLTIP */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-slate-800 text-white text-[10px] rounded-lg p-3 hidden group-hover/dot:block z-50 shadow-xl pointer-events-none opacity-0 group-hover/dot:opacity-100 transition-opacity">
+                          {/* Panah Bawah Tooltip */}
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-800 rotate-45"></div>
+
+                          <div className="relative z-10 space-y-1.5">
+                            <div className="font-bold text-indigo-200 border-b border-slate-600 pb-1 mb-1 flex justify-between">
+                              <span>
+                                {startTime} - {endTime}
+                              </span>
+                            </div>
+
+                            {/* [BARU] Menampilkan Nama Resource di Tooltip */}
+                            <div className="bg-slate-700/50 p-1 rounded border border-slate-600">
+                              <span className="text-slate-300 block text-[9px]">
+                                Resource:
+                              </span>
+                              <span className="font-bold text-emerald-300">
+                                {resourceName}
+                              </span>
+                            </div>
+
+                            <div>
+                              <span className="text-slate-400">Kegiatan:</span>{" "}
+                              <br />
+                              <span className="font-medium">{s.title}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400">Peminjam:</span>{" "}
+                              <br />
+                              <span className="font-medium">
+                                {borrowerName}
+                              </span>
+                            </div>
+                            <div className="pt-1 flex justify-between items-center border-t border-slate-700 mt-1">
+                              <span className="text-slate-400">Urgensi:</span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${
+                                  s.priority_level === "critical"
+                                    ? "bg-red-500 text-white"
+                                    : s.priority_level === "high"
+                                    ? "bg-orange-500 text-white"
+                                    : s.priority_level === "medium"
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-slate-600 text-slate-200"
+                                }`}
+                              >
+                                {s.priority_level}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
                   {daySchedules.length > 4 && (
                     <span className="text-[6px] text-slate-400 leading-none">
                       +

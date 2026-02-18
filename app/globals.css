@@ -1,14 +1,39 @@
 @import "tailwindcss";
 
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* [BARU] Styling Global untuk Input Form (Poin #5) */
 @layer base {
-  body {
-    @apply bg-slate-50 text-slate-800 antialiased;
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    @apply border border-slate-300 shadow-sm transition-all duration-200;
+  }
+
+  /* Efek Focus */
+  input:focus,
+  select:focus,
+  textarea:focus {
+    @apply border-indigo-500 ring-1 ring-indigo-500 outline-none shadow-md shadow-indigo-100;
+  }
+
+  /* Style tombol btn-primary agar konsisten */
+  .btn-primary {
+    @apply bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg transition-all shadow-lg active:scale-95 disabled:opacity-70 disabled:cursor-not-allowed;
   }
 }
 

@@ -1,7 +1,11 @@
 import { createClient } from "@/utils/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import CalendarView from "@/components/calendar-view"; // Pastikan import ini ada
+import CalendarView from "@/components/calendar-view";
+import CustomToast from "@/components/custom-toast";
+
+// [FIX 1] Paksa halaman ini selalu render ulang (no-cache) agar data sinkron dengan Admin
+export const dynamic = "force-dynamic";
 
 export default async function UserPortal({
   searchParams,
@@ -23,20 +27,34 @@ export default async function UserPortal({
   const roleName = (profile?.roles as any)?.name;
   const isSupervisor = roleName === "supervisor";
 
-  const { success, error } = await searchParams;
-
-  const { data: resources } = await supabase
+  // [FIX 2] Hapus filter .is("deleted_at", null) karena kita pakai scheduled_for_deletion_at
+  // Ambil semua resource terlebih dahulu
+  const { data: allResources } = await supabase
     .from("resources")
     .select("*")
-    .is("deleted_at", null)
     .order("name");
 
-  // [PERBAIKAN] Tambahkan 'priority_level' di select agar warna kalender muncul
+  // [FIX 3] Filter Manual: Sembunyikan resource yang waktu hapusnya SUDAH LEWAT
+  // Ini menangani kasus jika Admin belum visit dashboard (DB belum delete), tapi di Portal harusnya sudah hilang.
+  const now = new Date();
+  const resources = allResources?.filter((res) => {
+    // Jika tidak ada jadwal hapus, tampilkan
+    if (!res.scheduled_for_deletion_at) return true;
+
+    // Jika ada jadwal hapus, cek apakah MASIH di masa depan?
+    // Jika waktu hapus > sekarang, berarti belum waktunya dihapus (Masih tampil sebagai "Segera Dihapus")
+    // Jika waktu hapus < sekarang, berarti sudah expired (Sembunyikan)
+    return new Date(res.scheduled_for_deletion_at) > now;
+  });
+
   const { data: allSchedules } = await supabase
     .from("schedules")
     .select(
-      "id, title, start_time, resource_id, priority_level, resources(name)"
-    ) // <--- DITAMBAHKAN priority_level
+      `
+      id, title, start_time, end_time, resource_id, priority_level, 
+      resources(name), profiles(full_name)
+    `
+    )
     .eq("status", "approved")
     .gte("start_time", new Date().toISOString())
     .order("start_time")
@@ -44,8 +62,9 @@ export default async function UserPortal({
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
+      <CustomToast />
+
       <div className="max-w-7xl mx-auto space-y-10">
-        {/* Header */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold text-slate-900">
@@ -57,21 +76,9 @@ export default async function UserPortal({
                 : "Pilih ruangan atau alat yang tersedia."}
             </p>
           </div>
-          {success && (
-            <div className="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-xl text-sm font-bold border border-emerald-200">
-              ✅ {success}
-            </div>
-          )}
-          {error && (
-            <div className="bg-red-100 text-red-800 px-4 py-2 rounded-xl text-sm font-bold border border-red-200">
-              ⛔ {error}
-            </div>
-          )}
         </div>
 
-        {/* Layout Grid: Resource (Kiri) & Kalender (Kanan) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Kolom Kiri: Resources */}
           <div className="lg:col-span-2">
             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
               📂 Daftar Resource
@@ -87,7 +94,7 @@ export default async function UserPortal({
                   <div
                     key={res.id}
                     className={`bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between ${
-                      isDisabled ? "opacity-60 grayscale" : "hover:shadow-md"
+                      isDisabled ? "opacity-70 bg-slate-50" : "hover:shadow-md"
                     }`}
                   >
                     <div>
@@ -101,19 +108,54 @@ export default async function UserPortal({
                         >
                           {res.type === "Room" ? "🏢" : "💻"}
                         </div>
-                        {!isDisabled && (
+
+                        {isClosingDown ? (
+                          <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full border border-red-200 animate-pulse">
+                            SEGERA DIHAPUS
+                          </span>
+                        ) : isInactive ? (
+                          <span className="bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full border border-slate-300">
+                            NON-AKTIF
+                          </span>
+                        ) : (
                           <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded-full">
                             {res.capacity} {unit}
                           </span>
                         )}
                       </div>
+
                       <h3 className="text-lg font-bold text-slate-900 mb-1">
                         {res.name}
                       </h3>
-                      <p className="text-slate-400 text-xs line-clamp-2 mb-4">
+
+                      {res.type === "Room" &&
+                        res.facilities &&
+                        res.facilities.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mb-3">
+                            {res.facilities
+                              .slice(0, 3)
+                              .map((fac: string, idx: number) => (
+                                <span
+                                  key={idx}
+                                  className="bg-indigo-50 text-indigo-600 text-[9px] font-bold px-1.5 py-0.5 rounded border border-indigo-100"
+                                >
+                                  {fac}
+                                </span>
+                              ))}
+                            {res.facilities.length > 3 && (
+                              <span className="text-[9px] text-slate-400">
+                                +{res.facilities.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                      <p className="text-slate-500 text-xs line-clamp-2 mb-4">
                         {res.description || "Fasilitas tersedia."}
                       </p>
                     </div>
+
+                    {/* Tombol Aksi */}
                     {isSupervisor ? (
                       <button
                         disabled
@@ -122,18 +164,20 @@ export default async function UserPortal({
                         Mode Pantau
                       </button>
                     ) : isDisabled ? (
-                      <button
-                        disabled
-                        className="w-full bg-slate-100 text-slate-400 font-bold py-2 rounded-lg text-xs"
+                      <Link
+                        href={`/portal/book/${res.id}`}
+                        className="block text-center bg-slate-100 border border-slate-200 text-slate-400 font-bold py-2 rounded-lg text-xs hover:bg-slate-200 transition"
                       >
-                        Tidak Tersedia
-                      </button>
+                        {isClosingDown ? "Lihat (Terbatas)" : "Tidak Tersedia"}
+                      </Link>
                     ) : (
                       <Link
                         href={`/portal/book/${res.id}`}
                         className="block text-center bg-white border border-indigo-200 text-indigo-600 font-bold py-2 rounded-lg text-xs hover:bg-indigo-600 hover:text-white transition"
                       >
-                        Pilih Resource →
+                        {res.type === "Room"
+                          ? "Pilih Ruangan →"
+                          : "Pilih Alat →"}
                       </Link>
                     )}
                   </div>
@@ -142,12 +186,10 @@ export default async function UserPortal({
             </div>
           </div>
 
-          {/* Kolom Kanan: Kalender */}
           <div className="lg:col-span-1">
             <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
               🗓️ Kalender Kegiatan
             </h2>
-            {/* Load Calendar Component */}
             <CalendarView schedules={allSchedules || []} />
 
             <div className="mt-6 bg-indigo-900 rounded-2xl p-6 text-white relative overflow-hidden">

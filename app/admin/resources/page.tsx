@@ -4,43 +4,42 @@ import ResourceManagement from "./resource-management";
 export default async function ResourcesPage() {
   const supabase = await createClient();
 
-  // 1. Ambil data (Filter Soft Delete)
+  // 1. Ambil semua data resource
   const { data: resources } = await supabase
     .from("resources")
     .select("*")
-    .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
-  // 2. Logic Lazy Finalization (Pembersihan Otomatis)
+  // 2. Logic Lazy Deletion (Pembersihan Otomatis)
+  // Cek apakah ada resource yang jadwal penghapusannya sudah LEWAT dari sekarang
   const now = new Date();
-  const resourcesToFinalize = resources?.filter(
+
+  // Filter resource yang: (punya jadwal hapus) DAN (waktunya <= sekarang)
+  const resourcesToDelete = resources?.filter(
     (r) =>
-      r.scheduled_for_deletion_at && new Date(r.scheduled_for_deletion_at) < now
+      r.scheduled_for_deletion_at &&
+      new Date(r.scheduled_for_deletion_at) <= now
   );
 
-  if (resourcesToFinalize && resourcesToFinalize.length > 0) {
-    const idsToFinalize = resourcesToFinalize.map((r) => r.id);
-    await supabase
-      .from("resources")
-      .update({
-        deleted_at: now.toISOString(),
-        scheduled_for_deletion_at: null,
-      })
-      .in("id", idsToFinalize);
+  if (resourcesToDelete && resourcesToDelete.length > 0) {
+    const idsToDelete = resourcesToDelete.map((r) => r.id);
+
+    // Eksekusi Hapus Permanen di Database
+    await supabase.from("resources").delete().in("id", idsToDelete);
   }
 
+  // 3. Filter Data untuk Tampilan UI
+  // Jangan tampilkan resource yang baru saja dihapus atau yang memang sudah lewat waktunya
   const cleanResources =
     resources?.filter(
       (r) =>
         !r.scheduled_for_deletion_at ||
-        new Date(r.scheduled_for_deletion_at) >= now
+        new Date(r.scheduled_for_deletion_at) > now
     ) || [];
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
-        {/* JUDUL DIHAPUS DARI SINI, PINDAH KE CLIENT COMPONENT */}
-
         <ResourceManagement initialResources={cleanResources} />
       </div>
     </div>

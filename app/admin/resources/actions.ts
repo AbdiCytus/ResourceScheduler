@@ -1,118 +1,126 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
-// --- 1. CREATE RESOURCE (Dengan Validasi Role) ---
+// --- CREATE RESOURCE ---
 export async function createResource(formData: FormData) {
   const supabase = await createClient();
 
-  // Validasi Admin
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
   const name = formData.get("name") as string;
   const type = formData.get("type") as string;
-  const capacity = formData.get("capacity") as string;
+  const capacity = parseInt(formData.get("capacity") as string);
   const description = formData.get("description") as string;
+
+  // [POIN #4] Default Active = true (Langsung Aktif saat dibuat)
+  const isActive = true;
+
+  // Parsing Fasilitas
+  const facilitiesRaw = formData.get("facilities") as string;
+  const facilities = facilitiesRaw
+    ? facilitiesRaw
+        .split(",")
+        .map((item) => item.trim())
+        .filter((i) => i)
+    : [];
 
   const { error } = await supabase.from("resources").insert({
     name,
     type,
-    capacity: parseInt(capacity),
+    capacity,
     description,
-    is_active: true,
+    is_active: isActive,
+    facilities: facilities,
   });
 
   if (error) return { error: error.message };
   revalidatePath("/admin/resources");
-  return { success: "Resource berhasil ditambahkan!" };
+  revalidatePath("/portal");
+  return { success: true };
 }
 
-// --- 2. UPDATE RESOURCE (Fitur Baru) ---
+// --- UPDATE RESOURCE ---
 export async function updateResource(formData: FormData) {
   const supabase = await createClient();
 
   const id = formData.get("id") as string;
   const name = formData.get("name") as string;
   const type = formData.get("type") as string;
-  const capacity = formData.get("capacity") as string;
+  const capacity = parseInt(formData.get("capacity") as string);
   const description = formData.get("description") as string;
-  // Checkbox 'is_active' mengembalikan 'on' jika dicentang, null jika tidak
+
+  // Saat Edit, kita baca checkbox (User bisa menonaktifkan manual)
   const isActive = formData.get("is_active") === "on";
+
+  const facilitiesRaw = formData.get("facilities") as string;
+  const facilities = facilitiesRaw
+    ? facilitiesRaw
+        .split(",")
+        .map((item) => item.trim())
+        .filter((i) => i)
+    : [];
 
   const { error } = await supabase
     .from("resources")
     .update({
       name,
       type,
-      capacity: parseInt(capacity),
+      capacity,
       description,
       is_active: isActive,
+      facilities: facilities,
     })
     .eq("id", id);
 
   if (error) return { error: error.message };
   revalidatePath("/admin/resources");
-  return { success: "Resource berhasil diperbarui!" };
+  revalidatePath("/portal");
+  return { success: true };
 }
 
-// --- 3. SMART SOFT DELETE RESOURCE ---
+// --- DELETE RESOURCE (SMART DELETE) ---
 export async function deleteResource(id: string) {
   const supabase = await createClient();
 
-  // A. Cek jadwal masa depan yang masih aktif
-  const now = new Date().toISOString();
-
-  const { data: futureSchedules } = await supabase
+  // [POIN #1] Cek jadwal terakhir yang masih aktif (masa depan)
+  const { data: lastSchedule } = await supabase
     .from("schedules")
     .select("end_time")
     .eq("resource_id", id)
     .eq("status", "approved")
-    .gt("end_time", now)
-    .order("end_time", { ascending: false })
-    .limit(1);
+    .gt("end_time", new Date().toISOString()) // Hanya cek jadwal masa depan
+    .order("end_time", { ascending: false }) // Ambil yang paling terakhir selesai
+    .limit(1)
+    .single();
 
-  // SKENARIO 1: Resource sedang dipakai (Masa Tenggang)
-  if (futureSchedules && futureSchedules.length > 0) {
-    const lastScheduleTime = futureSchedules[0].end_time;
+  if (lastSchedule) {
+    // KASUS A: Masih ada jadwal aktif.
+    // Set waktu penghapusan = Waktu selesainya jadwal terakhir.
+    // Set is_active = false (agar tidak bisa dibooking lagi).
 
-    // Tandai untuk dihapus nanti, tapi JANGAN ubah nama resource
-    const { error } = await supabase
+    await supabase
       .from("resources")
       .update({
-        is_active: false, // Tutup booking baru
-        scheduled_for_deletion_at: lastScheduleTime, // Jadwal hapus otomatis
+        scheduled_for_deletion_at: lastSchedule.end_time,
+        is_active: false,
       })
       .eq("id", id);
 
-    if (error) return { error: "Gagal mengatur jadwal penghapusan." };
-
-    revalidatePath("/admin/resources");
+    const dateStr = new Date(lastSchedule.end_time).toLocaleString("id-ID", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
     return {
       warning: true,
-      message: `Resource masih digunakan! Sistem menjadwalkan penghapusan otomatis pada ${new Date(
-        lastScheduleTime
-      ).toLocaleString(
-        "id-ID"
-      )}. Sementara itu, status resource diubah menjadi Non-Aktif.`,
+      message: `Resource masih digunakan. Akan dihapus otomatis setelah jadwal terakhir selesai pada: ${dateStr}. Status resource sekarang dinonaktifkan.`,
     };
   }
 
-  // SKENARIO 2: Resource aman -> Lakukan SOFT DELETE (Bukan Delete Permanen)
-  const { error } = await supabase
-    .from("resources")
-    .update({
-      is_active: false,
-      deleted_at: new Date().toISOString(), // Tandai sudah terhapus sekarang
-    })
-    .eq("id", id);
+  // KASUS B: Tidak ada jadwal masa depan. Hapus langsung.
+  const { error } = await supabase.from("resources").delete().eq("id", id);
 
-  if (error) return { error: "Gagal menghapus resource." };
+  if (error) return { error: error.message };
 
   revalidatePath("/admin/resources");
-  return { success: "Resource berhasil dihapus (Soft Delete)." };
+  return { success: true };
 }
