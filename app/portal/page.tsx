@@ -5,6 +5,13 @@ import PortalClient from "./portal-client";
 
 export const dynamic = "force-dynamic";
 
+async function getSettings(supabase: any) {
+  const { data } = await supabase.from("system_settings").select("*");
+  const settings: Record<string, string> = {};
+  data?.forEach((item: any) => (settings[item.key] = item.value));
+  return settings;
+}
+
 export default async function UserPortal({
   searchParams,
 }: {
@@ -25,11 +32,12 @@ export default async function UserPortal({
   const roleName = (profile?.roles as any)?.name;
   const isSupervisor = roleName === "supervisor";
 
+  const settings = await getSettings(supabase);
+
   const { data: allResources } = await supabase
     .from("resources")
     .select("*")
     .order("name");
-
   const now = new Date();
   const resources =
     allResources?.filter((res) => {
@@ -37,20 +45,15 @@ export default async function UserPortal({
       return new Date(res.scheduled_for_deletion_at) > now;
     }) || [];
 
-  // [UPDATE] HAPUS FILTER STATUS APPROVED
-  // Kita ingin mengambil semua status agar bisa ditampilkan warnanya di frontend
   const { data: allSchedules } = await supabase
     .from("schedules")
+    // [PERBAIKAN DISINI] Tambahkan 'type' pada resources(name, type)
     .select(
-      `
-      id, title, start_time, end_time, resource_id, priority_level, quantity_borrowed, status,
-      resources(name), profiles(full_name)
-    `
+      `id, title, start_time, end_time, resource_id, priority_level, quantity_borrowed, status, resources(name, type), profiles(full_name)`,
     )
-    // .eq("status", "approved") <--- BARIS INI DIHAPUS
     .gte(
       "start_time",
-      new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+      new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
     )
     .order("start_time")
     .limit(500);
@@ -73,6 +76,7 @@ export default async function UserPortal({
           resources={resources}
           schedules={allSchedules || []}
           isSupervisor={isSupervisor}
+          settings={settings}
         />
       </div>
     </div>

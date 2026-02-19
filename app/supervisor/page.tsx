@@ -1,216 +1,314 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
-// Helper Format Hari & Tanggal (Lebih Ringkas)
-function formatDayDate(dateString: string) {
-  if (!dateString) return "-";
-  return new Date(dateString).toLocaleDateString("id-ID", {
-    weekday: "short", // Sen
-    day: "numeric", // 20
-    month: "short", // Feb
-    year: "numeric", // 2024
-  });
+export const dynamic = "force-dynamic";
+
+// --- HELPERS ---
+const SCORE_ROLES: Record<string, number> = {
+  admin: 100,
+  supervisor: 50,
+  user: 10,
+};
+const SCORE_PRIORITY: Record<string, number> = {
+  high: 30,
+  medium: 20,
+  low: 10,
+};
+
+function calculateScore(role: string, priority: string) {
+  const roleScore = SCORE_ROLES[role] || 10;
+  const prioScore = SCORE_PRIORITY[priority] || 10;
+  return roleScore + prioScore;
 }
 
-// Helper Format Waktu Log (Agar aman dari Hydration Error)
-function formatLogTime(dateString: string) {
-  if (!dateString) return "-";
-  return new Date(dateString).toLocaleString("id-ID", {
+function formatDateTime(dateStr: string) {
+  const d = new Date(dateStr);
+  return d.toLocaleString("id-ID", {
     day: "numeric",
     month: "short",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
   });
 }
 
+function getDuration(start: string, end: string) {
+  const diff = new Date(end).getTime() - new Date(start).getTime();
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0 && minutes > 0) return `${hours}j ${minutes}m`;
+  if (hours > 0) return `${hours} Jam`;
+  return `${minutes} Menit`;
+}
+
 export default async function SupervisorDashboard() {
   const supabase = await createClient();
 
-  // 1. Cek Login & Role
+  // 1. Autentikasi User
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // 2. Ambil Profil & Role
   const { data: profile } = await supabase
     .from("profiles")
-    .select("roles (name)")
+    .select("roles(name)")
     .eq("id", user.id)
     .single();
 
   const roleName = (profile?.roles as any)?.name;
-  if (roleName !== "supervisor") {
-    redirect("/portal?error=Akses ditolak. Halaman ini khusus Supervisor.");
+
+  // =========================================================
+  // [PERBAIKAN] IZINKAN AKSES UNTUK SUPERVISOR ATAU ADMIN
+  // =========================================================
+  if (roleName !== "supervisor" && roleName !== "admin") {
+    redirect("/portal");
   }
 
   const now = new Date().toISOString();
 
-  // 2. Statistik Jadwal Aktif
-  const { count: totalActiveSchedules } = await supabase
-    .from("schedules")
-    .select("*", { count: "exact", head: true })
-    .eq("status", "approved")
-    .gt("end_time", now);
+  // Ambil Data Statistik (Parallel Fetching agar cepat)
+  const [
+    { count: activeCount },
+    { count: preemptionCount },
+    { data: settings },
+    { data: schedules },
+  ] = await Promise.all([
+    // Statistik 1: Jadwal Aktif (Belum Selesai)
+    supabase
+      .from("schedules")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "approved")
+      .gt("end_time", now),
 
-  const { count: totalPreemptions } = await supabase
-    .from("audit_logs")
-    .select("*", { count: "exact", head: true })
-    .eq("action", "PREEMPT_SCHEDULE");
+    // Statistik 2: Total Preemption (Jadwal Digeser)
+    supabase
+      .from("schedules")
+      .select("*", { count: "exact", head: true })
+      .eq("status", "cancelled")
+      .ilike("description", "%Digeser%"),
 
-  // 3. Ambil Data Audit Log
-  const { data: logs } = await supabase
-    .from("audit_logs")
-    .select(`*, profiles (full_name, email)`)
-    .order("created_at", { ascending: false })
-    .limit(30);
+    // Statistik 3: System Status (Maintenance)
+    supabase
+      .from("system_settings")
+      .select("value")
+      .eq("key", "is_maintenance")
+      .single(),
+
+    // Tabel Riwayat Penjadwalan Masuk
+    supabase
+      .from("schedules")
+      .select(
+        `
+        id, created_at, start_time, end_time, priority_level, status,
+        resources (name),
+        profiles (full_name, roles(name))
+      `,
+      )
+      .order("created_at", { ascending: false })
+      .limit(100),
+  ]);
+
+  const isMaintenance = settings?.value === "true";
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-10">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-slate-900 mb-8">
-          Dashboard Monitoring
-        </h1>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-          <StatCard
-            title="Jadwal Aktif"
-            value={totalActiveSchedules || 0}
-            subtext="Sedang & Akan Berjalan"
-            color="indigo"
-            icon="📅"
-          />
-          <StatCard
-            title="Total Preemption"
-            value={totalPreemptions || 0}
-            subtext="Konflik Teratasi Otomatis"
-            color="purple"
-            icon="⚡"
-          />
-          <StatCard
-            title="Status Sistem"
-            value="Optimal"
-            color="emerald"
-            icon="✅"
-          />
+    <div className="min-h-screen bg-slate-50 p-6 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* --- HEADER --- */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+              <span className="text-4xl">👁️</span> Dashboard Monitoring
+            </h1>
+            <p className="text-slate-500 mt-1">
+              Pemantauan aktivitas peminjaman dan preemption sistem.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {roleName === "admin" && (
+              <Link
+                href="/admin/dashboard"
+                className="bg-white border border-slate-200 text-slate-600 font-bold px-4 py-2 rounded-xl text-sm hover:bg-slate-50 transition shadow-sm"
+              >
+                Kembali ke Admin
+              </Link>
+            )}
+            <Link
+              href="/portal"
+              className="bg-indigo-600 text-white font-bold px-4 py-2 rounded-xl text-sm hover:bg-indigo-700 transition shadow-sm"
+            >
+              Buka Portal
+            </Link>
+          </div>
         </div>
 
-        {/* Tabel Log Aktivitas */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="px-6 py-5 border-b border-slate-100 bg-slate-50/50">
-            <h3 className="font-semibold text-slate-800">
-              Riwayat Aktivitas & Status
-            </h3>
+        {/* --- STATISTIK CARDS --- */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-2xl font-bold">
+              📅
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-500">Jadwal Aktif</p>
+              <h3 className="text-2xl font-black text-slate-800">
+                {activeCount || 0}
+              </h3>
+            </div>
           </div>
+
+          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+            <div className="w-14 h-14 bg-red-50 text-red-600 rounded-xl flex items-center justify-center text-2xl font-bold">
+              ⚠️
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-500">
+                Total Preemption
+              </p>
+              <h3 className="text-2xl font-black text-slate-800">
+                {preemptionCount || 0}
+              </h3>
+            </div>
+          </div>
+
+          <div
+            className={`p-6 rounded-2xl border shadow-sm flex items-center gap-4 ${isMaintenance ? "bg-red-50 border-red-200" : "bg-white border-slate-200"}`}
+          >
+            <div
+              className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold ${isMaintenance ? "bg-red-100 text-red-600" : "bg-emerald-50 text-emerald-600"}`}
+            >
+              {isMaintenance ? "⛔" : "✅"}
+            </div>
+            <div>
+              <p className="text-sm font-bold text-slate-500">Status Sistem</p>
+              <h3
+                className={`text-xl font-black ${isMaintenance ? "text-red-700" : "text-emerald-700"}`}
+              >
+                {isMaintenance ? "MAINTENANCE" : "ONLINE"}
+              </h3>
+            </div>
+          </div>
+        </div>
+
+        {/* --- TABEL AUDIT LOG --- */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+            <h2 className="text-lg font-bold text-slate-800">
+              Riwayat Penjadwalan Masuk
+            </h2>
+            <p className="text-xs text-slate-500">
+              Log semua permintaan peminjaman dan nilai skor kalkulasinya.
+            </p>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="text-[11px] font-bold tracking-wider text-slate-500 uppercase bg-slate-50 border-b border-slate-100">
-                  <th className="px-6 py-4">Waktu Log</th>
-                  <th className="px-6 py-4">User</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Resource</th>
-                  <th className="px-6 py-4">Hari</th>
-                  <th className="px-6 py-4">Jam</th>
-                  <th className="px-6 py-4">Durasi</th>
-                  <th className="px-6 py-4 text-center">Skor</th>
-                  <th className="px-6 py-4 text-center">Status</th>
+              <thead className="bg-white">
+                <tr className="border-b border-slate-200 text-xs text-slate-400 uppercase tracking-wider font-bold">
+                  <th className="py-4 px-6">Waktu Pengajuan</th>
+                  <th className="py-4 px-6">Pengguna & Role</th>
+                  <th className="py-4 px-6">Resource</th>
+                  <th className="py-4 px-6">Waktu Booking</th>
+                  <th className="py-4 px-6">Durasi</th>
+                  <th className="py-4 px-6 text-center">Skor (Power)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {logs?.map((log) => {
-                  const details: any = log.details || {};
+              <tbody className="text-sm text-slate-600">
+                {schedules && schedules.length > 0 ? (
+                  schedules.map((log) => {
+                    // Ekstrak data relasi
+                    const uName =
+                      (Array.isArray(log.profiles)
+                        ? log.profiles[0]
+                        : log.profiles
+                      )?.full_name || "User";
+                    const uRole =
+                      (Array.isArray(log.profiles)
+                        ? log.profiles[0]
+                        : log.profiles
+                      )?.roles?.name || "user";
+                    const rName = log.resources?.name || "Unknown";
 
-                  return (
-                    <tr
-                      key={log.id}
-                      className="hover:bg-slate-50/80 transition-colors"
-                    >
-                      {/* Waktu Log */}
-                      <td className="px-6 py-4 text-xs text-slate-400 font-mono whitespace-nowrap">
-                        {formatLogTime(log.created_at)}
-                      </td>
+                    // Hitung Skor
+                    const score = calculateScore(uRole, log.priority_level);
 
-                      {/* User */}
-                      <td className="px-6 py-4 text-sm font-medium text-slate-900">
-                        {log.profiles?.full_name || "Unknown"}
-                      </td>
+                    // Visual Warna Skor
+                    let scoreBadge =
+                      "bg-slate-100 text-slate-600 border-slate-200";
+                    if (score > 60)
+                      scoreBadge = "bg-red-100 text-red-700 border-red-200";
+                    else if (score > 20)
+                      scoreBadge =
+                        "bg-amber-100 text-amber-700 border-amber-200";
+                    else
+                      scoreBadge =
+                        "bg-emerald-100 text-emerald-700 border-emerald-200";
 
-                      {/* Role */}
-                      <td className="px-6 py-4">
-                        <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                            details.user_role === "admin"
-                              ? "bg-red-100 text-red-700"
-                              : details.user_role === "supervisor"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : "bg-slate-100 text-slate-600"
-                          }`}
-                        >
-                          {details.user_role || "-"}
-                        </span>
-                      </td>
+                    return (
+                      <tr
+                        key={log.id}
+                        className="border-b border-slate-50 hover:bg-slate-50 transition-colors"
+                      >
+                        {/* Waktu Log */}
+                        <td className="py-4 px-6 font-mono text-xs whitespace-nowrap">
+                          {formatDateTime(log.created_at)}
+                        </td>
 
-                      {/* Resource */}
-                      <td className="px-6 py-4 text-sm text-indigo-600 font-medium">
-                        {details.resource_name || "-"}
-                      </td>
-
-                      {/* Hari */}
-                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
-                        {details.date ? formatDayDate(details.date) : "-"}
-                      </td>
-
-                      {/* Jam */}
-                      <td className="px-6 py-4 text-sm text-slate-600 font-mono whitespace-nowrap">
-                        {details.start_time && details.end_time
-                          ? `${details.start_time} - ${details.end_time}`
-                          : "-"}
-                      </td>
-
-                      {/* Durasi */}
-                      <td className="px-6 py-4 text-sm text-slate-600">
-                        {details.duration || "-"}
-                      </td>
-
-                      {/* Skor */}
-                      <td className="px-6 py-4 text-center">
-                        {details.score ? (
-                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-slate-700 font-bold text-xs border border-slate-200">
-                            {details.score}
+                        {/* User & Role */}
+                        <td className="py-4 px-6 whitespace-nowrap">
+                          <p className="font-bold text-slate-800">{uName}</p>
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">
+                            {uRole}
                           </span>
-                        ) : (
-                          "-"
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Status Badge */}
-                      <td className="px-6 py-4 text-center">
-                        {log.action === "CREATE_SCHEDULE" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                            APPROVED
+                        {/* Resource */}
+                        <td className="py-4 px-6 font-medium text-slate-700 whitespace-nowrap">
+                          {rName}
+                        </td>
+
+                        {/* Waktu Booking */}
+                        <td className="py-4 px-6 whitespace-nowrap">
+                          <p className="text-xs">
+                            {formatDateTime(log.start_time).split(",")[0]}
+                          </p>
+                          <p className="font-mono text-[10px] text-slate-400">
+                            {new Date(log.start_time).toLocaleTimeString(
+                              "id-ID",
+                              { hour: "2-digit", minute: "2-digit" },
+                            )}{" "}
+                            -{" "}
+                            {new Date(log.end_time).toLocaleTimeString(
+                              "id-ID",
+                              { hour: "2-digit", minute: "2-digit" },
+                            )}
+                          </p>
+                        </td>
+
+                        {/* Durasi */}
+                        <td className="py-4 px-6 text-xs font-bold text-slate-500 whitespace-nowrap">
+                          {getDuration(log.start_time, log.end_time)}
+                        </td>
+
+                        {/* Skor Sistem */}
+                        <td className="py-4 px-6 text-center whitespace-nowrap">
+                          <span
+                            className={`px-3 py-1 rounded-lg text-xs font-black border ${scoreBadge}`}
+                          >
+                            {score} PTS
                           </span>
-                        ) : log.action === "CANCEL_SCHEDULE" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                            CANCELLED
-                          </span>
-                        ) : log.action === "PREEMPT_SCHEDULE" ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 border border-red-200">
-                            PREEMPTED
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-slate-500">
-                            {log.action}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-                {(!logs || logs.length === 0) && (
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
                   <tr>
-                    <td colSpan={9} className="p-8 text-center text-slate-400">
-                      Belum ada aktivitas.
+                    <td
+                      colSpan={6}
+                      className="py-12 text-center text-slate-400"
+                    >
+                      Tidak ada aktivitas penjadwalan.
                     </td>
                   </tr>
                 )}
@@ -218,34 +316,6 @@ export default async function SupervisorDashboard() {
             </table>
           </div>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ title, value, subtext, color, icon }: any) {
-  const colors: any = {
-    indigo: "bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-indigo-200",
-    purple: "bg-gradient-to-br from-purple-500 to-purple-600 shadow-purple-200",
-    emerald:
-      "bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-200",
-  };
-
-  return (
-    <div
-      className={`${colors[color]} rounded-2xl p-6 text-white shadow-lg relative overflow-hidden card-hover`}
-    >
-      <div className="relative z-10">
-        <p className="text-indigo-100 text-sm font-medium uppercase tracking-wider mb-1 opacity-80">
-          {title}
-        </p>
-        <h3 className="text-4xl font-bold">{value}</h3>
-        {subtext && (
-          <p className="text-xs text-indigo-100 mt-2 opacity-90">{subtext}</p>
-        )}
-      </div>
-      <div className="absolute top-4 right-4 text-4xl opacity-20 filter blur-sm">
-        {icon}
       </div>
     </div>
   );

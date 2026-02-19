@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import AdminSidebar from "@/components/admin-sidebar"; // Import Sidebar Baru
+import AdminSidebar from "./admin-sidebar" // Import komponen sidebar
 
 export default async function AdminLayout({
   children,
@@ -54,11 +54,12 @@ export default async function AdminLayout({
 
   return (
     <div className="flex min-h-[calc(100vh-64px)] bg-slate-50">
-      {/* SIDEBAR (Menggunakan Component Client Baru) */}
+      {/* Panggil Sidebar Komponen */}
       <AdminSidebar />
 
       {/* MAIN CONTENT */}
       <main className="flex-1 overflow-y-auto">
+        {/* Mobile Header (Hanya muncul di mobile untuk akses menu) */}
         <div className="md:hidden bg-white border-b border-slate-200 p-4 mb-4 flex items-center justify-between sticky top-0 z-10">
           <span className="font-bold text-slate-800">Admin Panel</span>
           <Link
@@ -68,6 +69,7 @@ export default async function AdminLayout({
             Menu
           </Link>
         </div>
+
         {children}
       </main>
     </div>
