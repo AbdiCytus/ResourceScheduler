@@ -5,19 +5,19 @@ import { usePathname } from "next/navigation";
 import { signOut } from "@/app/login/actions";
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-// [BARU] Import Profile Modal
 import ProfileModal from "./profile-modal";
 
 export default function NavbarClient({ user, role }: { user: any; role: any }) {
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
   const isAdminActive = pathname.startsWith("/admin");
+  const isSupervisorActive = pathname.startsWith("/supervisor");
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  // [BARU] State untuk Profile Modal & Data Profile Real
+  // State untuk Profile Modal & Data Profile Real
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [realUsername, setRealUsername] = useState("");
 
@@ -41,7 +41,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
       }
     };
 
-    // [BARU] Fetch Real Username dari tabel profiles
+    // Fetch Real Username dari tabel profiles
     const fetchProfile = async () => {
       const { data } = await supabase
         .from("profiles")
@@ -77,7 +77,6 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
 
   return (
     <>
-      {/* [BARU] Modal Profile diletakkan di sini */}
       {user && (
         <ProfileModal
           isOpen={isProfileOpen}
@@ -101,20 +100,57 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
             </Link>
 
             <div className="flex items-center gap-6">
+              {/* --- NAVIGASI UTAMA --- */}
               <div className="hidden md:flex space-x-2">
                 {user && (
                   <>
+                    {/* Menu Portal */}
                     <NavLink href="/portal" activePath={pathname}>
-                      Portal
+                      <span className="flex items-center gap-1.5">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                          className="w-4 h-4"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
+                          />
+                        </svg>
+                        Portal
+                      </span>
                     </NavLink>
+
+                    {/* Menu Riwayat */}
                     {role !== "supervisor" && (
                       <NavLink href="/portal/history" activePath={pathname}>
-                        Riwayat
+                        <span className="flex items-center gap-1.5">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            strokeWidth={2}
+                            stroke="currentColor"
+                            className="w-4 h-4"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+                            />
+                          </svg>
+                          Riwayat
+                        </span>
                       </NavLink>
                     )}
                   </>
                 )}
 
+                {/* Menu Kelola (Khusus Admin) */}
                 {role === "admin" && (
                   <NavLink
                     href="/admin/resources"
@@ -122,17 +158,56 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                     isSpecial
                     forceActive={isAdminActive}
                   >
-                    Admin Panel
+                    <span className="flex items-center gap-1.5">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
+                        />
+                      </svg>
+                      Kelola
+                    </span>
                   </NavLink>
                 )}
 
-                {role === "supervisor" && (
-                  <NavLink href="/supervisor" activePath={pathname} isSpecial>
-                    Dashboard
+                {/* Menu Monitoring (Supervisor & Admin) */}
+                {(role === "supervisor" || role === "admin") && (
+                  <NavLink
+                    href="/supervisor"
+                    activePath={pathname}
+                    isSpecial
+                    forceActive={isSupervisorActive}
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={2}
+                        stroke="currentColor"
+                        className="w-4 h-4"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+                        />
+                      </svg>
+                      Monitoring
+                    </span>
                   </NavLink>
                 )}
               </div>
 
+              {/* --- AREA PROFIL & NOTIFIKASI --- */}
               <div className="flex items-center gap-4">
                 {/* Lonceng Notifikasi */}
                 {user && (
@@ -178,18 +253,10 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                             notifications.map((n) => (
                               <div
                                 key={n.id}
-                                className={`p-3 border-b border-slate-50 transition ${
-                                  n.type === "error"
-                                    ? "bg-red-50/30"
-                                    : "hover:bg-indigo-50/30"
-                                }`}
+                                className={`p-3 border-b border-slate-50 transition ${n.type === "error" ? "bg-red-50/30" : "hover:bg-indigo-50/30"}`}
                               >
                                 <p
-                                  className={`text-xs font-bold mb-0.5 ${
-                                    n.type === "error"
-                                      ? "text-red-700"
-                                      : "text-slate-800"
-                                  }`}
+                                  className={`text-xs font-bold mb-0.5 ${n.type === "error" ? "text-red-700" : "text-slate-800"}`}
                                 >
                                   {n.title}
                                 </p>
@@ -199,7 +266,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                                 <p className="text-[9px] text-slate-400 mt-1 text-right">
                                   {new Date(n.created_at).toLocaleTimeString(
                                     "id-ID",
-                                    { hour: "2-digit", minute: "2-digit" }
+                                    { hour: "2-digit", minute: "2-digit" },
                                   )}
                                 </p>
                               </div>
@@ -221,16 +288,13 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                   </div>
                 )}
 
-                {/* [UPDATE] User Profile Section - Sekarang Clickable */}
                 {user ? (
                   <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-                    {/* BUTTON PROFILE TRIGGER */}
                     <button
                       onClick={() => setIsProfileOpen(true)}
                       className="hidden lg:flex flex-col items-end group cursor-pointer text-right"
                       title="Klik untuk edit profil"
                     >
-                      {/* Gunakan Username Real jika ada, fallback ke email */}
                       <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition">
                         {realUsername || user.email?.split("@")[0]}
                       </span>
@@ -264,6 +328,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
   );
 }
 
+// Sub-Komponen NavLink dengan style dinamis
 function NavLink({ href, children, activePath, isSpecial, forceActive }: any) {
   const isActive =
     forceActive !== undefined ? forceActive : activePath === href;
