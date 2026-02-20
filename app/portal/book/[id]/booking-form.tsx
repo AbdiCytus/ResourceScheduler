@@ -187,7 +187,6 @@ export default function BookingForm({
   const [urgency, setUrgency] = useState("medium");
   const [selectedDate, setSelectedDate] = useState("");
 
-  // [BARU] State untuk expand/collapse panel skor
   const [showScore, setShowScore] = useState(false);
 
   useEffect(() => {
@@ -221,11 +220,14 @@ export default function BookingForm({
   ]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    // [UPDATE] Dihapus 'items-start' agar Grid items stretch sama tinggi
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
       {/* --- KOLOM KIRI: TABEL JADWAL --- */}
-      <div className="lg:col-span-5 order-2 lg:order-1">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[600px]">
-          <div className="p-6 border-b border-slate-100">
+      {/* [UPDATE] Wrapper diberi relative dan min-height */}
+      <div className="lg:col-span-5 order-2 lg:order-1 lg:relative min-h-[600px]">
+        {/* [UPDATE] absolute inset-0 memaksa div mengisi penuh tinggi grid cell induknya */}
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden lg:absolute lg:inset-0 flex flex-col">
+          <div className="p-6 border-b border-slate-100 shrink-0">
             <div className="flex justify-between items-start">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
@@ -244,7 +246,7 @@ export default function BookingForm({
           </div>
 
           {selectedDate && (
-            <div className="mx-6 mt-6 mb-2 p-4 bg-emerald-50 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-2">
+            <div className="mx-6 mt-6 mb-2 p-4 bg-emerald-50 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-2 shrink-0">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-sm font-bold text-emerald-800 flex items-center gap-2">
                   ✅ Waktu Kosong Tersedia
@@ -273,16 +275,19 @@ export default function BookingForm({
             </div>
           )}
 
-          <div className="p-6 pt-2">
-            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1">
+          {/* [UPDATE] Pembungkus untuk Scroll Internal */}
+          <div className="p-6 pt-4 flex flex-col flex-1 min-h-0">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1 shrink-0">
               Daftar Terisi (Booked)
             </h4>
 
             {displayedSchedules.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
+              // [UPDATE] overflow-y-auto memungkinkan tabel discroll jika panjang
+              <div className="overflow-y-auto overflow-x-auto flex-1 rounded-xl border border-slate-100 relative custom-scrollbar">
                 <table className="w-full text-left border-collapse">
-                  <thead className="bg-slate-50/80">
-                    <tr className="border-b border-slate-200 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                  {/* [UPDATE] Header Tabel menempel di atas (sticky) saat discroll */}
+                  <thead className="bg-slate-50/95 backdrop-blur-sm sticky top-0 z-20 border-b border-slate-200 shadow-sm">
+                    <tr className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
                       <th className="py-3 px-3">Waktu</th>
                       <th className="py-3 px-3">Detail</th>
                     </tr>
@@ -295,7 +300,7 @@ export default function BookingForm({
                       return (
                         <tr
                           key={sch.id}
-                          className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors last:border-b-0"
+                          className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors last:border-b-0"
                         >
                           <td className="py-3 px-3 whitespace-nowrap align-top">
                             <div className="mb-1">
@@ -318,7 +323,6 @@ export default function BookingForm({
                           </td>
 
                           <td className="py-3 px-3 align-top">
-                            {/* Menampilkan Ikon Gembok dengan Tooltip Anti-Potong */}
                             <div className="font-bold text-slate-800 line-clamp-2 mb-1 flex items-center">
                               {sch.isFrozen && (
                                 <div className="group relative inline-flex items-center mr-1.5 cursor-help">
@@ -371,7 +375,7 @@ export default function BookingForm({
                 </table>
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center h-40 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200">
+              <div className="flex flex-col items-center justify-center h-40 text-center bg-slate-50/50 rounded-xl border border-dashed border-slate-200 flex-1">
                 <div className="text-2xl mb-2 grayscale opacity-50">🗓️</div>
                 <p className="text-sm font-bold text-slate-600">Kosong</p>
                 <p className="text-xs text-slate-400">
@@ -385,7 +389,8 @@ export default function BookingForm({
       </div>
 
       {/* --- KOLOM KANAN: FORM --- */}
-      <div className="lg:col-span-7 space-y-6 lg:sticky lg:top-24 order-1 lg:order-2">
+      {/* [UPDATE] sticky dihapus agar Grid dapat mengkalkulasi tinggi layout secara natural */}
+      <div className="lg:col-span-7 space-y-6 order-1 lg:order-2">
         <form
           action={formAction}
           className="bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden"
@@ -614,6 +619,7 @@ export default function BookingForm({
                     <span className="font-bold text-amber-500">
                       Freeze Time 🔒
                     </span>
+                    .
                   </p>
                 </div>
               )}

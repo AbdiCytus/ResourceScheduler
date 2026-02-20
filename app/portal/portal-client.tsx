@@ -103,6 +103,16 @@ export default function PortalClient({
 
   return (
     <div className="space-y-6">
+      {/* INFO OPERASIONAL */}
+      <div
+        className={`flex-1 w-full px-5 py-3 mb-5 rounded-xl text-xs font-bold border flex items-center shadow-sm leading-relaxed ${
+          isMaintenance
+            ? "bg-red-50 text-red-600 border-red-200 justify-center tracking-wider animate-pulse text-center"
+            : "bg-indigo-50 text-indigo-700 border-indigo-100"
+        }`}
+      >
+        {operationalText}
+      </div>
       {/* TABS NAVIGATION */}
       <div className="bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 grid grid-cols-2 gap-1">
         <button
@@ -149,16 +159,6 @@ export default function PortalClient({
 
       {activeTab === "resources" && (
         <div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
-          {/* INFO OPERASIONAL */}
-          <div
-            className={`flex-1 w-full px-5 py-3 mb-5 rounded-xl text-xs font-bold border flex items-center shadow-sm leading-relaxed ${
-              isMaintenance
-                ? "bg-red-50 text-red-600 border-red-200 justify-center tracking-wider animate-pulse text-center"
-                : "bg-indigo-50 text-indigo-700 border-indigo-100"
-            }`}
-          >
-            {operationalText}
-          </div>
           <div className="flex flex-col xl:flex-row gap-4 mb-6 items-center">
             {/* Filter & Search */}
             <div className="flex flex-col md:flex-row gap-3 w-full xl:w-auto items-center shrink-0">
