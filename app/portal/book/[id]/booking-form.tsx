@@ -279,7 +279,7 @@ export default function BookingForm({
             </h4>
 
             {displayedSchedules.length > 0 ? (
-              <div className="overflow-x-auto rounded-xl border border-slate-100">
+              <div className="overflow-x-auto rounded-xl border border-slate-200">
                 <table className="w-full text-left border-collapse">
                   <thead className="bg-slate-50/80">
                     <tr className="border-b border-slate-200 text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
@@ -295,7 +295,7 @@ export default function BookingForm({
                       return (
                         <tr
                           key={sch.id}
-                          className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors last:border-b-0"
+                          className="border-b border-slate-200 hover:bg-slate-50/50 transition-colors last:border-b-0"
                         >
                           <td className="py-3 px-3 whitespace-nowrap align-top">
                             <div className="mb-1">
@@ -506,9 +506,9 @@ export default function BookingForm({
                     onChange={(e) => setUrgency(e.target.value)}
                     className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
                   >
-                    <option value="low">Low (10 PTS)</option>
-                    <option value="medium">Medium (30 PTS)</option>
-                    <option value="high">High (60 PTS)</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs">
                     ▼
@@ -517,7 +517,34 @@ export default function BookingForm({
               </div>
             </div>
 
-            {/* [UPDATE] PANEL SKOR DENGAN TOGGLE COLLAPSE */}
+            {resourceType === "Equipment" && (
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
+                  Jumlah Unit (Max: {capacity})
+                </label>
+                <input
+                  name="quantity_borrowed"
+                  type="number"
+                  min="1"
+                  max={capacity}
+                  defaultValue="1"
+                  className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
+                Deskripsi Tambahan
+              </label>
+              <textarea
+                name="description"
+                rows={2}
+                className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+              />
+            </div>
+
+            {/* PANEL SKOR DENGAN TOGGLE COLLAPSE */}
             <div className="border-t border-slate-100">
               <button
                 type="button"
@@ -587,37 +614,9 @@ export default function BookingForm({
                     <span className="font-bold text-amber-500">
                       Freeze Time 🔒
                     </span>
-                    .
                   </p>
                 </div>
               )}
-            </div>
-
-            {resourceType === "Equipment" && (
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
-                  Jumlah Unit (Max: {capacity})
-                </label>
-                <input
-                  name="quantity_borrowed"
-                  type="number"
-                  min="1"
-                  max={capacity}
-                  defaultValue="1"
-                  className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
-                Deskripsi Tambahan
-              </label>
-              <textarea
-                name="description"
-                rows={2}
-                className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
             </div>
 
             <div className="pt-2">
