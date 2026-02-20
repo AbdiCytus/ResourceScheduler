@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import SettingsForm from "./settings-form" // Kita pisah client component
+import SettingsForm from "./settings-form"; // Kita pisah client component
 import { getSystemSettings } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -36,7 +36,7 @@ export default async function SettingsPage() {
           Konfigurasi aturan penjadwalan dan operasional aplikasi.
         </p>
 
-        <SettingsForm settings={settings} />
+        <SettingsForm initialSettings={settings} />
       </div>
     </div>
   );

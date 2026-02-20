@@ -3,24 +3,42 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
+// --- [BARU DITAMBAHKAN KEMBALI] Fungsi untuk mengambil data settings ---
 export async function getSystemSettings() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("system_settings").select("*");
-
-  if (error) console.error(error);
+  const { data } = await supabase.from("system_settings").select("*");
 
   const settings: Record<string, string> = {};
-  data?.forEach((item) => {
+  data?.forEach((item: any) => {
     settings[item.key] = item.value;
   });
 
   return settings;
 }
 
-export async function updateSystemSettings(formData: FormData) {
+// --- Fungsi untuk menyimpan data settings ---
+export async function updateSettings(prevState: any, formData: FormData) {
   const supabase = await createClient();
 
-  const updates = [
+  // Validasi Otorisasi (Hanya Admin yang boleh ubah setting)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Anda harus login." };
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("roles(name)")
+    .eq("id", user.id)
+    .single();
+  if ((profile?.roles as any)?.name !== "admin") {
+    return {
+      error: "Akses ditolak. Hanya Admin yang dapat mengubah pengaturan.",
+    };
+  }
+
+  // Ambil semua data dari Form
+  const settingsData = [
     {
       key: "operational_start",
       value: formData.get("operational_start") as string,
@@ -38,21 +56,51 @@ export async function updateSystemSettings(formData: FormData) {
       value: formData.get("max_advance_days") as string,
     },
     {
-      key: "is_maintenance",
-      value: formData.get("is_maintenance") === "on" ? "true" : "false",
-    },
-    // [POIN 2] Simpan Setting Waktu Booking Minimal (Freeze Time)
-    {
       key: "min_booking_notice",
       value: formData.get("min_booking_notice") as string,
     },
+    // Field Bobot Baru
+    {
+      key: "role_weight_admin",
+      value: (formData.get("role_weight_admin") as string) || "30",
+    },
+    {
+      key: "role_weight_supervisor",
+      value: (formData.get("role_weight_supervisor") as string) || "25",
+    },
+    {
+      key: "role_weight_user",
+      value: (formData.get("role_weight_user") as string) || "20",
+    },
+    // Field Checkbox Maintenance
+    {
+      key: "is_maintenance",
+      value: formData.get("is_maintenance") === "true" ? "true" : "false",
+    },
   ];
 
-  const { error } = await supabase.from("system_settings").upsert(updates);
+  // Simpan ke Database (Tabel system_settings)
+  try {
+    for (const setting of settingsData) {
+      if (setting.value !== null && setting.value !== undefined) {
+        const { error } = await supabase
+          .from("system_settings")
+          .upsert(
+            { key: setting.key, value: setting.value },
+            { onConflict: "key" },
+          );
 
-  if (error) return { error: "Gagal menyimpan pengaturan: " + error.message };
+        if (error) throw new Error(error.message);
+      }
+    }
 
-  revalidatePath("/admin/settings");
-  revalidatePath("/portal"); // Refresh portal agar user langsung kena efeknya
-  return { success: "Pengaturan sistem berhasil diperbarui!" };
+    // Refresh cache halaman agar efeknya langsung terasa
+    revalidatePath("/admin/settings");
+    revalidatePath("/portal");
+    revalidatePath("/supervisor");
+
+    return { success: "Pengaturan sistem berhasil diperbarui!" };
+  } catch (error: any) {
+    return { error: `Gagal menyimpan pengaturan: ${error.message}` };
+  }
 }

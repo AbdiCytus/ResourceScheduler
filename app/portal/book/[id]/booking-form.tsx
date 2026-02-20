@@ -28,6 +28,7 @@ function getDurationAndStatus(startStr: string, endStr: string) {
   const diffMs = end.getTime() - start.getTime();
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
   let durationText = "";
   if (hours > 0) durationText += `${hours}j `;
   if (minutes > 0) durationText += `${minutes}m`;
@@ -64,7 +65,6 @@ function isSameDate(isoString: string, inputDate: string) {
   return `${year}-${month}-${day}` === inputDate;
 }
 
-// [UPDATE] Kalkulasi Sisa Unit menggunakan Sweep-Line Algorithm
 function calculateFreeSlots(
   schedulesOnDate: any[],
   opStart: string,
@@ -125,7 +125,6 @@ function calculateFreeSlots(
     });
   }
 
-  // Gabungkan waktu yang ketersediaannya sama
   const merged = [];
   for (const seg of segments) {
     if (seg.available > 0) {
@@ -152,7 +151,7 @@ function calculateFreeSlots(
     const eM = (slot.end % 60).toString().padStart(2, "0");
 
     if (resourceType === "Equipment" && slot.available < capacity) {
-      return `${sH}:${sM} - ${eH}:${eM} (${slot.available} Unit)`;
+      return `${sH}:${sM} - ${eH}:${eM} (Sisa ${slot.available} Unit)`;
     }
     return `${sH}:${sM} - ${eH}:${eM}`;
   });
@@ -168,6 +167,7 @@ interface BookingFormProps {
   existingSchedules: any[];
   opStart: string;
   opEnd: string;
+  userRoleWeight: number;
 }
 
 export default function BookingForm({
@@ -180,26 +180,15 @@ export default function BookingForm({
   existingSchedules,
   opStart,
   opEnd,
+  userRoleWeight,
 }: BookingFormProps) {
   const router = useRouter();
   const [state, formAction, isPending] = useActionState(createBooking, null);
   const [urgency, setUrgency] = useState("medium");
   const [selectedDate, setSelectedDate] = useState("");
 
-  const scoreInfo = (() => {
-    switch (urgency) {
-      case "low":
-        return { color: "bg-emerald-500", width: "w-1/3", text: "Skor Rendah" };
-      case "high":
-        return {
-          color: "bg-red-500",
-          width: "w-full",
-          text: "Prioritas Tinggi",
-        };
-      default:
-        return { color: "bg-amber-500", width: "w-2/3", text: "Skor Menengah" };
-    }
-  })();
+  // [BARU] State untuk expand/collapse panel skor
+  const [showScore, setShowScore] = useState(false);
 
   useEffect(() => {
     if (state?.success)
@@ -329,9 +318,22 @@ export default function BookingForm({
                           </td>
 
                           <td className="py-3 px-3 align-top">
-                            <div className="font-bold text-slate-800 line-clamp-2 mb-1">
-                              {sch.title}
+                            {/* Menampilkan Ikon Gembok dengan Tooltip Anti-Potong */}
+                            <div className="font-bold text-slate-800 line-clamp-2 mb-1 flex items-center">
+                              {sch.isFrozen && (
+                                <div className="group relative inline-flex items-center mr-1.5 cursor-help">
+                                  <span className="text-amber-500">🔒</span>
+                                  <div className="absolute left-full ml-2 top-1/2 -translate-y-1/2 opacity-0 invisible group-hover:visible group-hover:opacity-100 transition-all duration-200 z-[99] flex items-center">
+                                    <div className="w-0 h-0 border-t-[4px] border-b-[4px] border-r-[4px] border-t-transparent border-b-transparent border-r-slate-800"></div>
+                                    <div className="bg-slate-800 text-white text-[9px] font-black uppercase tracking-wider px-2.5 py-1.5 rounded-md shadow-lg whitespace-nowrap">
+                                      Freeze Time
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              <span className="line-clamp-1">{sch.title}</span>
                             </div>
+
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <span
                                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase border ${
@@ -344,10 +346,14 @@ export default function BookingForm({
                               >
                                 {sch.priority_level || "medium"}
                               </span>
-                              {/* [UPDATE] Tampilkan jumlah unit yang dipinjam */}
+
+                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase border bg-indigo-50 text-indigo-700 border-indigo-200">
+                                {sch.score} PTS
+                              </span>
+
                               {resourceType === "Equipment" && (
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-slate-100 text-slate-600 border-slate-200 flex items-center gap-1">
-                                  📦 {sch.quantity_borrowed} Unit
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded border bg-slate-50 text-slate-600 border-slate-200 flex items-center gap-1">
+                                  📦 {sch.quantity_borrowed || 1} Unit
                                 </span>
                               )}
                             </div>
@@ -387,22 +393,11 @@ export default function BookingForm({
           <input type="hidden" name="resourceId" value={resourceId} />
 
           {state?.error && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 m-6 mb-0 rounded-r-lg">
-              <div className="flex items-center gap-3">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                  className="w-5 h-5 text-red-700 shrink-0"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M9.401 3.003c1.155-2 4.043-2 5.197 0l7.355 12.748c1.154 2-.29 4.5-2.599 4.5H4.645c-2.309 0-3.752-2.5-2.599-4.5L9.4 3.003ZM12 8.25a.75.75 0 0 1 .75.75v3.75a.75.75 0 0 1-1.5 0V9a.75.75 0 0 1 .75-.75Zm0 8.25a.75.75 0 1 0 0-1.5.75.75 0 0 0 0 1.5Z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <p className="text-sm font-bold text-red-800">{state.error}</p>
-              </div>
+            <div className="bg-red-50 border-l-4 border-red-500 p-4 m-6 mb-0 rounded-r-lg flex items-center gap-3">
+              <span className="text-red-600">⚠️</span>
+              <p className="text-sm font-bold text-red-800 leading-relaxed">
+                {state.error}
+              </p>
             </div>
           )}
 
@@ -454,6 +449,7 @@ export default function BookingForm({
                   Judul Kegiatan
                 </label>
                 <input
+                  type="text"
                   name="title"
                   required
                   placeholder="Cth: Rapat"
@@ -475,8 +471,8 @@ export default function BookingForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-12 gap-4">
-              <div className="col-span-6 md:col-span-3">
+            <div className="grid grid-cols-12 gap-4 items-start">
+              <div className="col-span-6 md:col-span-4">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
                   Mulai
                 </label>
@@ -487,7 +483,7 @@ export default function BookingForm({
                   className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
-              <div className="col-span-6 md:col-span-3">
+              <div className="col-span-6 md:col-span-4">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
                   Selesai
                 </label>
@@ -498,7 +494,8 @@ export default function BookingForm({
                   className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
                 />
               </div>
-              <div className="col-span-12 md:col-span-6">
+
+              <div className="col-span-12 md:col-span-4">
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
                   Urgensi
                 </label>
@@ -509,25 +506,91 @@ export default function BookingForm({
                     onChange={(e) => setUrgency(e.target.value)}
                     className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none appearance-none cursor-pointer"
                   >
-                    <option value="low">Low (Biasa)</option>
-                    <option value="medium">Medium (Penting)</option>
-                    <option value="high">High (Mendesak)</option>
+                    <option value="low">Low (10 PTS)</option>
+                    <option value="medium">Medium (30 PTS)</option>
+                    <option value="high">High (60 PTS)</option>
                   </select>
                   <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs">
                     ▼
                   </div>
                 </div>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full ${scoreInfo.color} ${scoreInfo.width} transition-all duration-300 rounded-full`}
-                    ></div>
-                  </div>
-                  <span className="text-[9px] font-bold text-slate-500">
-                    {scoreInfo.text}
-                  </span>
-                </div>
               </div>
+            </div>
+
+            {/* [UPDATE] PANEL SKOR DENGAN TOGGLE COLLAPSE */}
+            <div className="border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowScore(!showScore)}
+                className="w-full flex items-center justify-between text-left py-2 px-1 text-sm font-bold text-slate-600 hover:text-indigo-600 transition-colors focus:outline-none group"
+              >
+                <span className="flex items-center gap-2">
+                  <span className="text-lg group-hover:scale-110 transition-transform">
+                    🏆
+                  </span>
+                  {showScore ? "Sembunyikan Skor" : "Tampilkan Skor"}
+                </span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={2}
+                  stroke="currentColor"
+                  className={`w-4 h-4 transition-transform duration-200 ${showScore ? "rotate-180" : ""}`}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                  />
+                </svg>
+              </button>
+
+              {showScore && (
+                <div className="mt-3 bg-slate-800 text-white rounded-xl p-4 shadow-inner animate-in fade-in slide-in-from-top-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-700 pb-3 mb-3">
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        Power Skor Anda
+                      </p>
+                      <div className="text-sm font-medium text-slate-300 mt-1">
+                        Role ({userRoleWeight}) + Urgensi (
+                        {urgency === "high"
+                          ? 60
+                          : urgency === "medium"
+                            ? 30
+                            : 10}
+                        )
+                      </div>
+                    </div>
+                    <div className="text-3xl font-black text-emerald-400 tracking-tight">
+                      {userRoleWeight +
+                        (urgency === "high"
+                          ? 60
+                          : urgency === "medium"
+                            ? 30
+                            : 10)}{" "}
+                      <span className="text-lg text-slate-500">PTS</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
+                    <span className="text-amber-400 font-bold">
+                      💡 Info Aturan:
+                    </span>{" "}
+                    Skor yang lebih tinggi dapat melakukan preemption
+                    (menggeser) jadwal ber-skor rendah yang sudah ter-booking.{" "}
+                    <span className="text-slate-300 font-bold">
+                      Aturan ini batal
+                    </span>{" "}
+                    jika jadwal target sudah kebal karena memasuki{" "}
+                    <span className="font-bold text-amber-500">
+                      Freeze Time 🔒
+                    </span>
+                    .
+                  </p>
+                </div>
+              )}
             </div>
 
             {resourceType === "Equipment" && (
