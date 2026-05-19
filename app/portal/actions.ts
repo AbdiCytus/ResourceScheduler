@@ -7,8 +7,9 @@ import { revalidatePath } from "next/cache";
 const FREEZE_TIME_HOURS = 24;
 const ROLE_WEIGHTS: Record<string, number> = {
   admin: 50,
-  supervisor: 30,
-  user: 10,
+  kajur: 30,    // sebelumnya 'supervisor'
+  dosen: 20,    // role baru
+  mahasiswa: 10, // sebelumnya 'user'
 };
 const URGENCY_WEIGHTS: Record<string, number> = {
   critical: 40,
@@ -102,7 +103,7 @@ export async function submitSchedule(prevState: any, formData: FormData) {
     .eq("id", user.id)
     .single();
   const userRole = (profile?.roles as any)?.name || "user";
-  if (userRole === "supervisor") return { error: "Supervisor hanya memantau." };
+  if (userRole === "kajur") return { error: "Kajur hanya memantau." };
 
   // 2. PARSE DATA
   const resourceId = formData.get("resourceId") as string;

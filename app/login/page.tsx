@@ -69,10 +69,8 @@ export default function LoginPage() {
                       required
                       className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 p-3 bg-slate-50 appearance-none"
                     >
-                      <option value="user">User (Peminjam)</option>
-                      <option value="supervisor">Supervisor (Pemantau)</option>
-                      {/* Opsional: Izinkan daftar jadi Admin, atau sembunyikan jika berbahaya */}
-                      <option value="admin">Admin (Pengelola)</option>
+                      <option value="mahasiswa">Mahasiswa</option>
+                      <option value="dosen">Dosen</option>
                     </select>
                     <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500">
                       ▼

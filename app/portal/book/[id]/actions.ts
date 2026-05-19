@@ -122,13 +122,15 @@ export async function createBooking(prevState: any, formData: FormData) {
     .select("roles(name)")
     .eq("id", user.id)
     .single();
-  const userRole = (profile?.roles as any)?.name || "user";
+  const userRole = (profile?.roles as any)?.name || "mahasiswa";
 
-  let roleWeight = parseInt(config["role_weight_user"] || "20");
+  let roleWeight = parseInt(config["role_weight_mahasiswa"] || "20");
   if (userRole === "admin")
     roleWeight = parseInt(config["role_weight_admin"] || "30");
-  else if (userRole === "supervisor")
-    roleWeight = parseInt(config["role_weight_supervisor"] || "25");
+  else if (userRole === "kajur")
+    roleWeight = parseInt(config["role_weight_kajur"] || "25");
+  else if (userRole === "dosen")
+    roleWeight = parseInt(config["role_weight_dosen"] || "22");
 
   const urgencyWeight =
     priority === "high" ? 60 : priority === "medium" ? 30 : 10;
@@ -206,12 +208,14 @@ export async function createBooking(prevState: any, formData: FormData) {
       .map((c) => {
         const vRole =
           (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.roles
-            ?.name || "user";
-        let vRoleWeight = parseInt(config["role_weight_user"] || "20");
+            ?.name || "mahasiswa";
+        let vRoleWeight = parseInt(config["role_weight_mahasiswa"] || "20");
         if (vRole === "admin")
           vRoleWeight = parseInt(config["role_weight_admin"] || "30");
-        else if (vRole === "supervisor")
-          vRoleWeight = parseInt(config["role_weight_supervisor"] || "25");
+        else if (vRole === "kajur")
+          vRoleWeight = parseInt(config["role_weight_kajur"] || "25");
+        else if (vRole === "dosen")
+          vRoleWeight = parseInt(config["role_weight_dosen"] || "22");
         const vUrgencyWeight =
           c.priority_level === "high"
             ? 60

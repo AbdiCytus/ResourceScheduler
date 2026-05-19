@@ -59,18 +59,22 @@ export async function updateSettings(prevState: any, formData: FormData) {
       key: "min_booking_notice",
       value: formData.get("min_booking_notice") as string,
     },
-    // Field Bobot Baru
+    // Field Bobot Role
     {
       key: "role_weight_admin",
       value: (formData.get("role_weight_admin") as string) || "30",
     },
     {
-      key: "role_weight_supervisor",
-      value: (formData.get("role_weight_supervisor") as string) || "25",
+      key: "role_weight_kajur",
+      value: (formData.get("role_weight_kajur") as string) || "25",
     },
     {
-      key: "role_weight_user",
-      value: (formData.get("role_weight_user") as string) || "20",
+      key: "role_weight_dosen",
+      value: (formData.get("role_weight_dosen") as string) || "22",
+    },
+    {
+      key: "role_weight_mahasiswa",
+      value: (formData.get("role_weight_mahasiswa") as string) || "20",
     },
     // Field Checkbox Maintenance
     {
@@ -97,7 +101,7 @@ export async function updateSettings(prevState: any, formData: FormData) {
     // Refresh cache halaman agar efeknya langsung terasa
     revalidatePath("/admin/settings");
     revalidatePath("/portal");
-    revalidatePath("/supervisor");
+    revalidatePath("/supervisor"); // path halaman kajur
 
     return { success: "Pengaturan sistem berhasil diperbarui!" };
   } catch (error: any) {

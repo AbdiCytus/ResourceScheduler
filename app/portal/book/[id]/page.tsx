@@ -29,7 +29,7 @@ export default async function BookResourcePage({
     .select("roles(name)")
     .eq("id", user.id)
     .single();
-  const roleName = (profile?.roles as any)?.name || "user";
+  const roleName = (profile?.roles as any)?.name || "mahasiswa";
 
   const { data: resource } = await supabase
     .from("resources")
@@ -42,13 +42,15 @@ export default async function BookResourcePage({
 
   // Bobot dari Pengaturan Admin
   const wAdmin = parseInt(settings["role_weight_admin"] || "30");
-  const wSuper = parseInt(settings["role_weight_supervisor"] || "25");
-  const wUser = parseInt(settings["role_weight_user"] || "20");
+  const wKajur = parseInt(settings["role_weight_kajur"] || "25");
+  const wDosen = parseInt(settings["role_weight_dosen"] || "22");
+  const wMahasiswa = parseInt(settings["role_weight_mahasiswa"] || "20");
 
   // Kalkulasi Role Weight untuk User yang Login
-  let userRoleWeight = wUser;
+  let userRoleWeight = wMahasiswa;
   if (roleName === "admin") userRoleWeight = wAdmin;
-  else if (roleName === "supervisor") userRoleWeight = wSuper;
+  else if (roleName === "kajur") userRoleWeight = wKajur;
+  else if (roleName === "dosen") userRoleWeight = wDosen;
 
   const actualNow = new Date();
   const startOfDay = new Date(actualNow);
@@ -71,10 +73,11 @@ export default async function BookResourcePage({
     // 1. Hitung Skor
     const vRole =
       (Array.isArray(sch.profiles) ? sch.profiles[0] : sch.profiles)?.roles
-        ?.name || "user";
-    let vRoleWeight = wUser;
+        ?.name || "mahasiswa";
+    let vRoleWeight = wMahasiswa;
     if (vRole === "admin") vRoleWeight = wAdmin;
-    else if (vRole === "supervisor") vRoleWeight = wSuper;
+    else if (vRole === "kajur") vRoleWeight = wKajur;
+    else if (vRole === "dosen") vRoleWeight = wDosen;
 
     const vUrgWeight =
       sch.priority_level === "high"

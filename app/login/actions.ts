@@ -71,8 +71,9 @@ export async function login(formData: FormData) {
 // --- SIGNUP ACTION ---
 const ROLE_MAP: Record<string, number> = {
   admin: 1,
-  user: 2,
-  supervisor: 3,
+  mahasiswa: 2, // sebelumnya 'user'
+  kajur: 3,     // sebelumnya 'supervisor'
+  dosen: 4,     // role baru
 };
 
 export async function signup(formData: FormData) {

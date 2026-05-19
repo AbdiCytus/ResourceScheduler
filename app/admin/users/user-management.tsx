@@ -150,14 +150,16 @@ export default function UserManagement({
                 <td className="px-6 py-4">
                   <span
                     className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${
-                      user.role_id === 1
+                      user.roles?.name === "admin"
                         ? "bg-red-100 text-red-700"
-                        : user.role_id === 3
+                        : user.roles?.name === "kajur"
+                        ? "bg-purple-100 text-purple-700"
+                        : user.roles?.name === "dosen"
                         ? "bg-yellow-100 text-yellow-700"
-                        : "bg-blue-100 text-blue-700"
+                        : "bg-blue-100 text-blue-700" // mahasiswa
                     }`}
                   >
-                    {user.roles?.name || "User"}
+                    {user.roles?.name || "Mahasiswa"}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-center">
@@ -256,8 +258,9 @@ export default function UserManagement({
                     Role
                   </label>
                   <select name="role" className="w-full rounded-xl p-3">
-                    <option value="user">User (Staff)</option>
-                    <option value="supervisor">Supervisor</option>
+                    <option value="mahasiswa">Mahasiswa</option>
+                    <option value="dosen">Dosen</option>
+                    <option value="kajur">Kajur (Ketua Jurusan)</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>

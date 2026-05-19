@@ -30,7 +30,7 @@ export default async function UserPortal({
     .eq("id", user.id)
     .single();
   const roleName = (profile?.roles as any)?.name;
-  const isSupervisor = roleName === "supervisor";
+  const isKajur = roleName === "kajur";
 
   const settings = await getSettings(supabase);
 
@@ -65,8 +65,8 @@ export default async function UserPortal({
       <div className="max-w-7xl mx-auto w-full mb-6">
         <h1 className="text-3xl font-bold text-slate-900">Portal Peminjaman</h1>
         <p className="text-slate-500 mt-1">
-          {isSupervisor
-            ? "Mode Pemantauan Supervisor"
+          {isKajur
+            ? "Mode Pemantauan Kajur"
             : "Pilih ruangan atau cek jadwal kegiatan."}
         </p>
       </div>
@@ -75,7 +75,7 @@ export default async function UserPortal({
         <PortalClient
           resources={resources}
           schedules={allSchedules || []}
-          isSupervisor={isSupervisor}
+          isSupervisor={isKajur}
           settings={settings}
         />
       </div>

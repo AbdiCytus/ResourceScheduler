@@ -19,8 +19,9 @@ const supabaseAdmin = createAdminClient(
 // Mapping Role ke ID (Sesuaikan dengan DB Anda)
 const ROLE_MAP: Record<string, number> = {
   admin: 1,
-  user: 2,
-  supervisor: 3,
+  mahasiswa: 2, // sebelumnya 'user'
+  kajur: 3,     // sebelumnya 'supervisor'
+  dosen: 4,     // role baru
 };
 
 export async function createUser(formData: FormData) {

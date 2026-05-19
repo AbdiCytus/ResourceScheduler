@@ -138,25 +138,38 @@ export default function SettingsForm({
                 </div>
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-500">
-                    Supervisor
+                    Kajur
                   </label>
                   <input
                     type="number"
-                    name="role_weight_supervisor"
+                    name="role_weight_kajur"
                     defaultValue={
-                      initialSettings["role_weight_supervisor"] || "25"
+                      initialSettings["role_weight_kajur"] || "25"
                     }
                     className="w-24 rounded-lg border-slate-200 p-2 text-sm text-center font-bold focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-500">
-                    User
+                    Dosen
                   </label>
                   <input
                     type="number"
-                    name="role_weight_user"
-                    defaultValue={initialSettings["role_weight_user"] || "20"}
+                    name="role_weight_dosen"
+                    defaultValue={
+                      initialSettings["role_weight_dosen"] || "22"
+                    }
+                    className="w-24 rounded-lg border-slate-200 p-2 text-sm text-center font-bold focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-500">
+                    Mahasiswa
+                  </label>
+                  <input
+                    type="number"
+                    name="role_weight_mahasiswa"
+                    defaultValue={initialSettings["role_weight_mahasiswa"] || "20"}
                     className="w-24 rounded-lg border-slate-200 p-2 text-sm text-center font-bold focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>

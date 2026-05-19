@@ -74,8 +74,9 @@ const IconFunnel = () => (
 // --- HELPERS ---
 const SCORE_ROLES: Record<string, number> = {
   admin: 100,
-  supervisor: 50,
-  user: 10,
+  kajur: 50,    // sebelumnya 'supervisor'
+  dosen: 40,    // role baru
+  mahasiswa: 10, // sebelumnya 'user'
 };
 const SCORE_PRIORITY: Record<string, number> = {
   high: 30,

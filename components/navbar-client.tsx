@@ -156,7 +156,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                 )}
 
                 {/* Menu Monitoring (Supervisor & Admin) */}
-                {(role === "supervisor" || role === "admin") && (
+                {(role === "kajur" || role === "admin") && (
                   <NavLink
                     href="/supervisor"
                     activePath={pathname}
@@ -184,7 +184,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                 )}
 
                 {/* Menu Riwayat */}
-                {role !== "supervisor" && (
+                {role !== "kajur" && (
                   <NavLink href="/portal/history" activePath={pathname}>
                     <span className="flex items-center gap-1.5">
                       <svg

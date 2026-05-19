@@ -89,7 +89,7 @@ export default async function SupervisorDashboard() {
   const roleName = (profile?.roles as any)?.name;
 
   // Proteksi Halaman
-  if (roleName !== "supervisor" && roleName !== "admin") redirect("/portal");
+  if (roleName !== "kajur" && roleName !== "admin") redirect("/portal");
 
   const now = new Date().toISOString();
 
