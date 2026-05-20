@@ -21,8 +21,8 @@ export default function LoginPage() {
           </h2>
           <p className="text-slate-500 mb-8">
             {isRegister
-              ? "Lengkapi data diri Anda."
-              : "Masuk untuk mengelola jadwal Anda."}
+              ? "Lengkapi data diri untuk mengakses sistem peminjaman Gedung H."
+              : "Masuk untuk mengajukan peminjaman ruangan Gedung H."}
           </p>
 
           {message && (
@@ -160,7 +160,7 @@ export default function LoginPage() {
           </h1>
           <p className="text-indigo-100 text-lg">
             {isRegister
-              ? "Daftarkan diri Anda untuk mulai mengatur jadwal penggunaan ruangan dan alat dengan mudah dan efisien."
+              ? "Daftarkan diri Anda sebagai Mahasiswa atau Dosen untuk mulai mengajukan peminjaman ruangan Gedung H Poliban."
               : '"Sistem yang tidak hanya mencatat jadwal, tapi berpikir untuk Anda. Prioritaskan yang penting, atur yang rutin."'}
           </p>
         </div>

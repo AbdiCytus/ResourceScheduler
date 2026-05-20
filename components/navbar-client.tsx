@@ -95,7 +95,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                 S
               </div>
               <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">
-                SmartScheduler
+                SimRuang
               </span>
             </Link>
 

@@ -420,14 +420,7 @@ export default function PortalClient({
                               {sch.title}
                             </h4>
 
-                            {/* [PERBAIKAN POSISI]: Flex Horizontal (Baris yang Sama) */}
                             <div className="flex items-center gap-1.5 shrink-0">
-                              {/* Tampilkan unit jika peralatan di sebelah label status */}
-                              {sch.resources?.type === "Equipment" && (
-                                <span className="text-[9px] font-bold text-slate-600 bg-slate-50 border border-slate-200 px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap">
-                                  📦 {sch.quantity_borrowed || 1} Unit
-                                </span>
-                              )}
 
                               <span
                                 className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${statusBadge}`}
@@ -439,11 +432,7 @@ export default function PortalClient({
 
                           <div className="flex flex-col gap-1 text-xs text-slate-500">
                             <div className="flex items-center gap-2">
-                              <span className="w-4 text-center">
-                                {sch.resources?.type === "Equipment"
-                                  ? "💻"
-                                  : "🏢"}
-                              </span>
+                              <span className="w-4 text-center">🏢</span>
                               <span className="font-semibold text-slate-700">
                                 {sch.resources?.name}
                               </span>

@@ -16,7 +16,7 @@ export default function AdminSidebar() {
           </div>
           <div>
             <h2 className="text-sm font-bold text-slate-800">Admin Panel</h2>
-            <p className="text-xs text-slate-500">Resource Manager</p>
+            <p className="text-xs text-slate-500">Gedung H · Poliban</p>
           </div>
         </div>
       </div>
@@ -47,7 +47,7 @@ export default function AdminSidebar() {
                 d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
               />
             </svg>
-            Resources & Alat
+            Manajemen Ruangan
           </AdminNavLink>
 
           {/* MENU 2: Users */}
@@ -128,7 +128,7 @@ export default function AdminSidebar() {
                 d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
               />
             </svg>
-            Dashboard Supervisor
+            Dashboard Kajur
           </AdminNavLink>
         </div>
       </nav>
