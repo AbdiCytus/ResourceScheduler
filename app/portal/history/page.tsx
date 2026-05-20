@@ -4,121 +4,148 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+const STATUS_STYLE: Record<string, string> = {
+  approved: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+  pending: "bg-amber-100 text-amber-700 border border-amber-200",
+  rejected: "bg-red-100 text-red-700 border border-red-200",
+  cancelled: "bg-slate-200 text-slate-500 border border-slate-300",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  approved: "Disetujui",
+  pending: "Menunggu",
+  rejected: "Ditolak",
+  cancelled: "Dibatalkan",
+};
+
 export default async function HistoryPage() {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
   const { data: schedules } = await supabase
     .from("schedules")
-    .select(`*, resources(name, type)`)
+    .select(`
+      *,
+      resources (name),
+      activity_templates (name, weight)
+    `)
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
+
+  const total = schedules?.length || 0;
+  const approved = schedules?.filter((s) => s.status === "approved").length || 0;
+  const preempted = schedules?.filter(
+    (s) => s.status === "cancelled" && s.description?.includes("Digeser")
+  ).length || 0;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">
-              Riwayat Peminjaman
-            </h1>
-            <p className="text-slate-500 text-sm">
-              Daftar semua pengajuan jadwal Anda.
-            </p>
+            <h1 className="text-2xl font-bold text-slate-900">Riwayat Peminjaman</h1>
+            <p className="text-slate-500 text-sm mt-0.5">Daftar semua pengajuan ruangan Gedung H Anda.</p>
           </div>
-          <Link
-            href="/portal"
-            className="text-sm font-bold text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-lg transition"
-          >
+          <Link href="/portal" className="text-sm font-bold text-indigo-600 hover:bg-indigo-50 px-4 py-2 rounded-lg transition">
             ← Kembali ke Portal
           </Link>
         </div>
 
-        <div className="space-y-4">
+        {/* Ringkasan Statistik */}
+        {total > 0 && (
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            {[
+              { label: "Total Pengajuan", value: total, color: "text-slate-700" },
+              { label: "Berhasil", value: approved, color: "text-emerald-600" },
+              { label: "Digeser Sistem", value: preempted, color: "text-rose-600" },
+            ].map((stat) => (
+              <div key={stat.label} className="bg-white rounded-2xl border border-slate-200 p-4 text-center shadow-sm">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{stat.label}</p>
+                <p className={`text-3xl font-black mt-1 ${stat.color}`}>{stat.value}</p>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Daftar Riwayat */}
+        <div className="space-y-3">
           {schedules && schedules.length > 0 ? (
             schedules.map((item) => {
               const startDate = new Date(item.start_time);
               const endDate = new Date(item.end_time);
               const dateStr = startDate.toLocaleDateString("id-ID", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
+                weekday: "long", day: "numeric", month: "long", year: "numeric",
               });
-              const timeStr = `${startDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
-
-              let statusClass = "bg-slate-100 text-slate-600";
-              if (item.status === "approved")
-                statusClass =
-                  "bg-emerald-100 text-emerald-700 border border-emerald-200";
-              if (item.status === "pending")
-                statusClass =
-                  "bg-amber-100 text-amber-700 border border-amber-200";
-              if (item.status === "rejected")
-                statusClass = "bg-red-100 text-red-700 border border-red-200";
-              if (item.status === "cancelled")
-                statusClass =
-                  "bg-slate-200 text-slate-500 border border-slate-300";
+              const timeStr = `${startDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} – ${endDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+              const statusClass = STATUS_STYLE[item.status] || "bg-slate-100 text-slate-600";
+              const statusLabel = STATUS_LABEL[item.status] || item.status;
+              const isPreempted = item.status === "cancelled" && item.description?.includes("Digeser");
+              const activityName = item.activity_templates?.name;
+              const activityWeight = item.activity_templates?.weight;
 
               return (
                 <div
                   key={item.id}
-                  className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col md:flex-row gap-5 items-start md:items-center"
+                  className={`bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md transition flex flex-col md:flex-row gap-5 items-start md:items-center ${
+                    isPreempted ? "border-rose-200 bg-rose-50/30" : "border-slate-200"
+                  }`}
                 >
-                  <div
-                    className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${item.resources.type === "Room" ? "bg-indigo-50 text-indigo-600" : "bg-orange-50 text-orange-600"}`}
-                  >
-                    {item.resources.type === "Room" ? "🏢" : "💻"}
+                  {/* Ikon */}
+                  <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-2xl shrink-0">
+                    🏢
                   </div>
 
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h3 className="text-base font-bold text-slate-900">
-                        {item.title}
-                      </h3>
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${statusClass}`}
-                      >
-                        {item.status}
+                  {/* Info Utama */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <h3 className="text-base font-bold text-slate-900 truncate">{item.title}</h3>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${statusClass}`}>
+                        {statusLabel}
                       </span>
                     </div>
 
-                    <p className="text-sm text-slate-600 font-medium mb-1">
-                      {item.resources.name}
+                    <p className="text-sm text-slate-600 font-semibold mb-2">
+                      🏢 {item.resources?.name || "—"}
                     </p>
 
+                    {/* Tag Kegiatan */}
+                    {activityName && (
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 rounded-full font-bold">
+                          🏷️ {activityName}
+                        </span>
+                        {activityWeight !== undefined && (
+                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-bold">
+                            Bobot {activityWeight} PTS
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                      <div className="flex items-center gap-1">
-                        <span>📅</span> {dateStr}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span>⏰</span> {timeStr}
-                      </div>
-                      {item.quantity_borrowed > 1 && (
-                        <div className="flex items-center gap-1">
-                          <span>📦</span> {item.quantity_borrowed} Unit
-                        </div>
-                      )}
+                      <div className="flex items-center gap-1">📅 {dateStr}</div>
+                      <div className="flex items-center gap-1">⏰ {timeStr}</div>
                     </div>
 
-                    {(item.status === "cancelled" ||
-                      item.status === "rejected") &&
-                      item.description &&
-                      item.description.includes("Digeser") && (
-                        <p className="mt-3 text-xs bg-red-50 text-red-700 p-2 rounded-lg border border-red-100">
-                          ⚠️ {item.description}
-                        </p>
-                      )}
+                    {/* Alert Preempted */}
+                    {isPreempted && (
+                      <div className="mt-3 bg-rose-50 border border-rose-100 text-rose-700 p-2.5 rounded-xl text-xs flex items-start gap-2">
+                        <span className="shrink-0">⚠️</span>
+                        <span>{item.description}</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <p className="text-[10px] text-slate-400">Diajukan pada:</p>
-                    <p className="text-xs font-medium text-slate-600">
-                      {new Date(item.created_at).toLocaleDateString("id-ID")}
+                  {/* Tanggal Pengajuan */}
+                  <div className="text-right shrink-0 ml-auto">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">Diajukan</p>
+                    <p className="text-xs font-bold text-slate-600 mt-0.5">
+                      {new Date(item.created_at).toLocaleDateString("id-ID", {
+                        day: "numeric", month: "short", year: "numeric",
+                      })}
                     </p>
                   </div>
                 </div>
@@ -126,7 +153,12 @@ export default async function HistoryPage() {
             })
           ) : (
             <div className="text-center py-20 bg-white rounded-2xl border border-slate-200 border-dashed">
-              <p className="text-slate-400">Belum ada riwayat peminjaman.</p>
+              <p className="text-4xl mb-3">📋</p>
+              <p className="font-bold text-slate-600">Belum ada riwayat peminjaman.</p>
+              <p className="text-slate-400 text-sm mt-1">Ajukan peminjaman ruangan dari Portal.</p>
+              <Link href="/portal" className="mt-4 inline-block text-sm font-bold text-indigo-600 hover:underline">
+                Ke Portal →
+              </Link>
             </div>
           )}
         </div>
