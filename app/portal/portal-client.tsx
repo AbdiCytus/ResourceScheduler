@@ -41,9 +41,7 @@ export default function PortalClient({
     "resources",
   );
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "Room" | "Equipment">(
-    "all",
-  );
+  const [filterType, setFilterType] = useState<"all" | "Room">("all");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [now, setNow] = useState(new Date());
@@ -169,9 +167,8 @@ export default function PortalClient({
                     value={filterType}
                     onChange={(e: any) => setFilterType(e.target.value)}
                   >
-                    <option value="all">Semua Tipe</option>
-                    <option value="Room">Ruangan</option>
-                    <option value="Equipment">Peralatan</option>
+                    <option value="all">Semua Ruangan</option>
+                    <option value="Room">Ruangan Aktif</option>
                   </select>
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                     <svg
@@ -236,7 +233,7 @@ export default function PortalClient({
               const isClosingDown = !!res.scheduled_for_deletion_at;
               const isInactive = !res.is_active;
               const isDisabled = isClosingDown || isInactive || isMaintenance;
-              const unit = res.type === "Room" ? "Orang" : "Unit";
+              const unit = "Org";
 
               return (
                 <div
@@ -320,7 +317,7 @@ export default function PortalClient({
                       href={`/portal/book/${res.id}`}
                       className="block text-center bg-white border border-indigo-200 text-indigo-600 font-bold py-2 rounded-lg text-xs mt-4 hover:bg-indigo-600 hover:text-white transition"
                     >
-                      Pilih Resource →
+                      Pinjam Ruangan →
                     </Link>
                   )}
                 </div>

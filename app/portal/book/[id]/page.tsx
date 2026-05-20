@@ -24,6 +24,10 @@ export default async function BookResourcePage({
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
+  // Cek apakah hari ini Sabtu (6) atau Minggu (0) → blok akses
+  const todayDay = new Date().getDay();
+  if (todayDay === 0 || todayDay === 6) redirect("/portal?error=weekend");
+
   const { data: profile } = await supabase
     .from("profiles")
     .select("roles(name)")
@@ -46,21 +50,38 @@ export default async function BookResourcePage({
   const wDosen = parseInt(settings["role_weight_dosen"] || "22");
   const wMahasiswa = parseInt(settings["role_weight_mahasiswa"] || "20");
 
-  // Kalkulasi Role Weight untuk User yang Login
   let userRoleWeight = wMahasiswa;
   if (roleName === "admin") userRoleWeight = wAdmin;
   else if (roleName === "kajur") userRoleWeight = wKajur;
   else if (roleName === "dosen") userRoleWeight = wDosen;
 
+  // Ambil template kegiatan yang sesuai role
+  const { data: allTemplates } = await supabase
+    .from("activity_templates")
+    .select("*")
+    .order("weight", { ascending: false });
+
+  // Filter berdasarkan role (allowed_roles mengandung role user atau 'admin' jika admin)
+  const activityTemplates = (allTemplates || []).filter((t: any) =>
+    t.allowed_roles.includes(roleName) || t.allowed_roles.includes("admin") && roleName === "admin"
+  );
+
+  // Ambil jadwal kuliah tetap resource ini (untuk validasi di UI)
+  const { data: teachingSchedules } = await supabase
+    .from("teaching_schedules")
+    .select("*")
+    .eq("resource_id", id)
+    .eq("is_offline", true); // Hanya yang offline (ruangan terpakai)
+
   const actualNow = new Date();
   const startOfDay = new Date(actualNow);
   startOfDay.setHours(0, 0, 0, 0);
 
-  // Ambil Jadwal beserta Role-nya
+  // Ambil jadwal booking eksisting
   const { data: rawSchedules } = await supabase
     .from("schedules")
     .select(
-      "id, title, start_time, end_time, priority_level, quantity_borrowed, profiles(full_name, roles(name))",
+      "id, title, start_time, end_time, priority_level, quantity_borrowed, profiles(full_name, roles(name)), activity_id",
     )
     .eq("resource_id", id)
     .eq("status", "approved")
@@ -68,9 +89,8 @@ export default async function BookResourcePage({
     .order("start_time", { ascending: true })
     .limit(50);
 
-  // Kalkulasi Skor dan Freeze Time untuk Jadwal Eksisting
+  // Kalkulasi Skor dan Freeze Time
   const existingSchedules = (rawSchedules || []).map((sch) => {
-    // 1. Hitung Skor
     const vRole =
       (Array.isArray(sch.profiles) ? sch.profiles[0] : sch.profiles)?.roles
         ?.name || "mahasiswa";
@@ -87,18 +107,15 @@ export default async function BookResourcePage({
           : 10;
     const score = vRoleWeight + vUrgWeight;
 
-    // 2. Cek Freeze Time
     const victimStart = new Date(sch.start_time);
     const diffHours =
       (victimStart.getTime() - actualNow.getTime()) / (1000 * 60 * 60);
     const isSameDay = victimStart.toDateString() === actualNow.toDateString();
 
     let isFrozen = false;
-    if (isSameDay && diffHours < 1)
-      isFrozen = true; // 1 Jam hari H
-    else if (!isSameDay && diffHours < 24) isFrozen = true; // 24 Jam H-
+    if (isSameDay && diffHours < 1) isFrozen = true;
+    else if (!isSameDay && diffHours < 24) isFrozen = true;
 
-    // Tambahkan properti baru
     return { ...sch, score, isFrozen };
   });
 
@@ -107,7 +124,7 @@ export default async function BookResourcePage({
       <div className="w-full max-w-7xl mx-auto">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-slate-900">
-            Peminjaman Resource
+            Peminjaman Ruangan
           </h1>
           <p className="text-slate-500">
             Silakan isi formulir di bawah untuk mengajukan peminjaman.
@@ -117,7 +134,6 @@ export default async function BookResourcePage({
         <BookingForm
           resourceId={resource.id}
           resourceName={resource.name}
-          resourceType={resource.type}
           capacity={resource.capacity}
           facilities={resource.facilities}
           minNotice={settings["min_booking_notice"] || "30"}
@@ -125,6 +141,9 @@ export default async function BookResourcePage({
           opEnd={settings["operational_end"] || "17:00"}
           existingSchedules={existingSchedules}
           userRoleWeight={userRoleWeight}
+          activityTemplates={activityTemplates}
+          teachingSchedules={teachingSchedules || []}
+          userRole={roleName}
         />
       </div>
     </div>

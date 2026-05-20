@@ -79,10 +79,8 @@ export async function createBooking(prevState: any, formData: FormData) {
 
   const resourceId = formData.get("resourceId") as string;
   const title = formData.get("title") as string;
-  const priority = (formData.get("priority_level") as string) || "medium";
-  const quantity = parseInt(
-    (formData.get("quantity_borrowed") as string) || "1",
-  );
+  const activityId = formData.get("activity_id") as string;
+  const quantity = 1; // Ruangan selalu 1
   const bookingDate = formData.get("booking_date") as string;
   const startTimeRaw = formData.get("start_time") as string;
   const endTimeRaw = formData.get("end_time") as string;
@@ -99,6 +97,11 @@ export async function createBooking(prevState: any, formData: FormData) {
 
   if (startDate >= endDate)
     return { error: "Waktu selesai harus lebih besar dari mulai." };
+
+  // VALIDASI: Hanya Senin-Jumat
+  const dayOfWeek = startDate.getDay();
+  if (dayOfWeek === 0 || dayOfWeek === 6)
+    return { error: "⛔ Peminjaman hanya berlaku Senin s/d Jumat." };
 
   // 1. SETTINGS & SCORE
   const config = await getSettings(supabase);
@@ -123,33 +126,71 @@ export async function createBooking(prevState: any, formData: FormData) {
     .eq("id", user.id)
     .single();
   const userRole = (profile?.roles as any)?.name || "mahasiswa";
+  if (userRole === "kajur") return { error: "Kajur hanya memantau." };
 
   let roleWeight = parseInt(config["role_weight_mahasiswa"] || "20");
-  if (userRole === "admin")
-    roleWeight = parseInt(config["role_weight_admin"] || "30");
-  else if (userRole === "kajur")
-    roleWeight = parseInt(config["role_weight_kajur"] || "25");
-  else if (userRole === "dosen")
-    roleWeight = parseInt(config["role_weight_dosen"] || "22");
+  if (userRole === "admin") roleWeight = parseInt(config["role_weight_admin"] || "30");
+  else if (userRole === "kajur") roleWeight = parseInt(config["role_weight_kajur"] || "25");
+  else if (userRole === "dosen") roleWeight = parseInt(config["role_weight_dosen"] || "22");
 
-  const urgencyWeight =
-    priority === "high" ? 60 : priority === "medium" ? 30 : 10;
-  const newScore = roleWeight + urgencyWeight;
+  // Ambil bobot dari activity_template
+  const { data: activityTemplate } = await supabase
+    .from("activity_templates")
+    .select("weight, name")
+    .eq("id", activityId)
+    .single();
 
-  // 2. AMBIL RESOURCE BESERTA VERSI (UNTUK OPTIMISTIC LOCKING)
+  if (!activityTemplate)
+    return { error: "Template kegiatan tidak valid." };
+
+  const activityWeight = activityTemplate.weight;
+
+  // VALIDASI H-1 untuk kegiatan bobot tinggi (>= 30)
+  if (activityWeight >= 30) {
+    const bookingDateObj = new Date(bookingDate);
+    const todayMidnight = new Date();
+    todayMidnight.setHours(0, 0, 0, 0);
+    const diffDays = Math.floor((bookingDateObj.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays < 1)
+      return { error: `⏰ Kegiatan "${activityTemplate.name}" berbobot tinggi. Wajib diajukan minimal H-1 (satu hari sebelumnya).` };
+  }
+
+  const newScore = roleWeight + activityWeight;
+
+  // Derive priority_level dari bobot kegiatan (untuk backward compat)
+  const priority = activityWeight >= 30 ? "high" : activityWeight >= 20 ? "medium" : "low";
+
   const { data: resource } = await supabase
     .from("resources")
-    .select("capacity, type, version")
+    .select("capacity, version")
     .eq("id", resourceId)
     .single();
   const capacityLimit = resource?.capacity || 1;
-  const isEquipment = resource?.type === "Equipment";
-  const currentVersion = resource?.version || 1; // Ambil penanda versi saat ini
+  const currentVersion = resource?.version || 1;
 
-  if (quantity > capacityLimit)
-    return {
-      error: `⚠️ Jumlah melebihi kapasitas maksimal (${capacityLimit}).`,
-    };
+  // VALIDASI: Cek bentrok dengan Jadwal Kuliah Tetap (is_offline = true)
+  const { data: teachingConflicts } = await supabase
+    .from("teaching_schedules")
+    .select("matakuliah, kelas, start_time, end_time")
+    .eq("resource_id", resourceId)
+    .eq("is_offline", true)
+    .eq("day_of_week", dayOfWeek);
+
+  if (teachingConflicts && teachingConflicts.length > 0) {
+    const [bsH, bsM] = startTimeRaw.split(":").map(Number);
+    const [beH, beM] = endTimeRaw.split(":").map(Number);
+    const bStart = bsH * 60 + bsM;
+    const bEnd = beH * 60 + beM;
+    for (const t of teachingConflicts) {
+      const [tsH, tsM] = t.start_time.slice(0, 5).split(":").map(Number);
+      const [teH, teM] = t.end_time.slice(0, 5).split(":").map(Number);
+      const tStart = tsH * 60 + tsM;
+      const tEnd = teH * 60 + teM;
+      if (bStart < tEnd && bEnd > tStart) {
+        return { error: `❌ Ruangan sedang digunakan kuliah: ${t.matakuliah} (${t.kelas}) pukul ${t.start_time.slice(0, 5)}–${t.end_time.slice(0, 5)}.` };
+      }
+    }
+  }
 
   // 3. CEK BENTROK
   const { data: conflicts } = await supabase
@@ -166,39 +207,9 @@ export async function createBooking(prevState: any, formData: FormData) {
   let requiredFreed = 0;
 
   if (conflicts && conflicts.length > 0) {
-    if (isEquipment) {
-      const events: { time: number; diff: number }[] = [];
-      conflicts.forEach((c) => {
-        events.push({
-          time: new Date(c.start_time).getTime(),
-          diff: c.quantity_borrowed || 1,
-        });
-        events.push({
-          time: new Date(c.end_time).getTime(),
-          diff: -(c.quantity_borrowed || 1),
-        });
-      });
-      events.push({ time: startDate.getTime(), diff: quantity });
-      events.push({ time: endDate.getTime(), diff: -quantity });
-      events.sort((a, b) =>
-        a.time === b.time ? a.diff - b.diff : a.time - b.time,
-      );
-
-      let maxConcurrent = 0,
-        currentConcurrent = 0;
-      for (const ev of events) {
-        currentConcurrent += ev.diff;
-        if (currentConcurrent > maxConcurrent)
-          maxConcurrent = currentConcurrent;
-      }
-      if (maxConcurrent > capacityLimit) {
-        hasConflict = true;
-        requiredFreed = maxConcurrent - capacityLimit;
-      }
-    } else {
-      hasConflict = true;
-      requiredFreed = 1;
-    }
+    // Semua resource sekarang Room (bukan Equipment)
+    hasConflict = true;
+    requiredFreed = 1;
   }
 
   // 4. LOGIKA PREEMPTION & FREEZE TIME
@@ -210,18 +221,11 @@ export async function createBooking(prevState: any, formData: FormData) {
           (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.roles
             ?.name || "mahasiswa";
         let vRoleWeight = parseInt(config["role_weight_mahasiswa"] || "20");
-        if (vRole === "admin")
-          vRoleWeight = parseInt(config["role_weight_admin"] || "30");
-        else if (vRole === "kajur")
-          vRoleWeight = parseInt(config["role_weight_kajur"] || "25");
-        else if (vRole === "dosen")
-          vRoleWeight = parseInt(config["role_weight_dosen"] || "22");
+        if (vRole === "admin") vRoleWeight = parseInt(config["role_weight_admin"] || "30");
+        else if (vRole === "kajur") vRoleWeight = parseInt(config["role_weight_kajur"] || "25");
+        else if (vRole === "dosen") vRoleWeight = parseInt(config["role_weight_dosen"] || "22");
         const vUrgencyWeight =
-          c.priority_level === "high"
-            ? 60
-            : c.priority_level === "medium"
-              ? 30
-              : 10;
+          c.priority_level === "high" ? 60 : c.priority_level === "medium" ? 30 : 10;
         return { ...c, score: vRoleWeight + vUrgencyWeight };
       })
       .sort((a, b) => a.score - b.score);
@@ -241,7 +245,7 @@ export async function createBooking(prevState: any, formData: FormData) {
         if (isFrozen) continue;
 
         preemptedVictims.push(c);
-        freedUnits += isEquipment ? c.quantity_borrowed || 1 : capacityLimit;
+        freedUnits += capacityLimit; // Room selalu 1 slot
         if (freedUnits >= requiredFreed) break;
       }
     }
@@ -313,8 +317,9 @@ export async function createBooking(prevState: any, formData: FormData) {
     resource_id: resourceId,
     user_id: user.id,
     priority_level: priority,
-    quantity_borrowed: quantity,
+    quantity_borrowed: 1,
     status: "approved",
+    activity_id: activityId || null,
   });
 
   if (error) {
