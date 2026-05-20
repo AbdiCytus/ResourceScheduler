@@ -4,17 +4,21 @@ import ResourceManagement from "./resource-management";
 export default async function ResourcesPage() {
   const supabase = await createClient();
 
-  // 1. Ambil semua data resource
-  const { data: resources } = await supabase
-    .from("resources")
-    .select("*")
-    .order("created_at", { ascending: false });
+  // 1. Ambil semua data resource beserta jadwal kuliahnya
+  const [{ data: resources }, { data: teachingSchedules }] = await Promise.all([
+    supabase
+      .from("resources")
+      .select("*")
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("teaching_schedules")
+      .select("*")
+      .order("day_of_week")
+      .order("start_time"),
+  ]);
 
-  // 2. Logic Lazy Deletion (Pembersihan Otomatis)
-  // Cek apakah ada resource yang jadwal penghapusannya sudah LEWAT dari sekarang
+  // 2. Logic Lazy Deletion
   const now = new Date();
-
-  // Filter resource yang: (punya jadwal hapus) DAN (waktunya <= sekarang)
   const resourcesToDelete = resources?.filter(
     (r) =>
       r.scheduled_for_deletion_at &&
@@ -23,13 +27,10 @@ export default async function ResourcesPage() {
 
   if (resourcesToDelete && resourcesToDelete.length > 0) {
     const idsToDelete = resourcesToDelete.map((r) => r.id);
-
-    // Eksekusi Hapus Permanen di Database
     await supabase.from("resources").delete().in("id", idsToDelete);
   }
 
   // 3. Filter Data untuk Tampilan UI
-  // Jangan tampilkan resource yang baru saja dihapus atau yang memang sudah lewat waktunya
   const cleanResources =
     resources?.filter(
       (r) =>
@@ -40,7 +41,10 @@ export default async function ResourcesPage() {
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
-        <ResourceManagement initialResources={cleanResources} />
+        <ResourceManagement
+          initialResources={cleanResources}
+          teachingSchedules={teachingSchedules || []}
+        />
       </div>
     </div>
   );

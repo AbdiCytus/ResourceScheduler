@@ -108,3 +108,23 @@ export async function updateSettings(prevState: any, formData: FormData) {
     return { error: `Gagal menyimpan pengaturan: ${error.message}` };
   }
 }
+
+// --- UPDATE BOBOT TEMPLATE KEGIATAN ---
+export async function updateActivityWeight(id: string, weight: number) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { error } = await supabase
+    .from("activity_templates")
+    .update({ weight })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/settings");
+  return { success: true };
+}

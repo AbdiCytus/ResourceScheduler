@@ -1,6 +1,6 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
-import SettingsForm from "./settings-form"; // Kita pisah client component
+import SettingsForm from "./settings-form";
 import { getSystemSettings } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -23,8 +23,14 @@ export default async function SettingsPage() {
 
   if (role !== "admin") redirect("/portal");
 
-  // 2. Ambil Data Settings
-  const settings = await getSystemSettings();
+  // 2. Ambil Data Settings & Template Kegiatan secara paralel
+  const [settings, { data: activityTemplates }] = await Promise.all([
+    getSystemSettings(),
+    supabase
+      .from("activity_templates")
+      .select("*")
+      .order("weight", { ascending: false }),
+  ]);
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
@@ -36,7 +42,10 @@ export default async function SettingsPage() {
           Konfigurasi aturan penjadwalan dan operasional aplikasi.
         </p>
 
-        <SettingsForm initialSettings={settings} />
+        <SettingsForm
+          initialSettings={settings}
+          activityTemplates={activityTemplates || []}
+        />
       </div>
     </div>
   );

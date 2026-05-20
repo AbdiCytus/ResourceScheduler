@@ -3,19 +3,14 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// --- CREATE RESOURCE ---
+// --- CREATE RESOURCE (Hanya Ruangan) ---
 export async function createResource(formData: FormData) {
   const supabase = await createClient();
 
   const name = formData.get("name") as string;
-  const type = formData.get("type") as string;
-  const capacity = parseInt(formData.get("capacity") as string);
+  const capacity = parseInt(formData.get("capacity") as string) || 1;
   const description = formData.get("description") as string;
 
-  // [POIN #4] Default Active = true (Langsung Aktif saat dibuat)
-  const isActive = true;
-
-  // Parsing Fasilitas
   const facilitiesRaw = formData.get("facilities") as string;
   const facilities = facilitiesRaw
     ? facilitiesRaw
@@ -26,11 +21,11 @@ export async function createResource(formData: FormData) {
 
   const { error } = await supabase.from("resources").insert({
     name,
-    type,
+    type: "Room", // Selalu Room sekarang
     capacity,
     description,
-    is_active: isActive,
-    facilities: facilities,
+    is_active: true,
+    facilities,
   });
 
   if (error) return { error: error.message };
@@ -45,11 +40,8 @@ export async function updateResource(formData: FormData) {
 
   const id = formData.get("id") as string;
   const name = formData.get("name") as string;
-  const type = formData.get("type") as string;
-  const capacity = parseInt(formData.get("capacity") as string);
+  const capacity = parseInt(formData.get("capacity") as string) || 1;
   const description = formData.get("description") as string;
-
-  // Saat Edit, kita baca checkbox (User bisa menonaktifkan manual)
   const isActive = formData.get("is_active") === "on";
 
   const facilitiesRaw = formData.get("facilities") as string;
@@ -62,14 +54,7 @@ export async function updateResource(formData: FormData) {
 
   const { error } = await supabase
     .from("resources")
-    .update({
-      name,
-      type,
-      capacity,
-      description,
-      is_active: isActive,
-      facilities: facilities,
-    })
+    .update({ name, type: "Room", capacity, description, is_active: isActive, facilities })
     .eq("id", id);
 
   if (error) return { error: error.message };
@@ -82,28 +67,20 @@ export async function updateResource(formData: FormData) {
 export async function deleteResource(id: string) {
   const supabase = await createClient();
 
-  // [POIN #1] Cek jadwal terakhir yang masih aktif (masa depan)
   const { data: lastSchedule } = await supabase
     .from("schedules")
     .select("end_time")
     .eq("resource_id", id)
     .eq("status", "approved")
-    .gt("end_time", new Date().toISOString()) // Hanya cek jadwal masa depan
-    .order("end_time", { ascending: false }) // Ambil yang paling terakhir selesai
+    .gt("end_time", new Date().toISOString())
+    .order("end_time", { ascending: false })
     .limit(1)
     .single();
 
   if (lastSchedule) {
-    // KASUS A: Masih ada jadwal aktif.
-    // Set waktu penghapusan = Waktu selesainya jadwal terakhir.
-    // Set is_active = false (agar tidak bisa dibooking lagi).
-
     await supabase
       .from("resources")
-      .update({
-        scheduled_for_deletion_at: lastSchedule.end_time,
-        is_active: false,
-      })
+      .update({ scheduled_for_deletion_at: lastSchedule.end_time, is_active: false })
       .eq("id", id);
 
     const dateStr = new Date(lastSchedule.end_time).toLocaleString("id-ID", {
@@ -112,15 +89,81 @@ export async function deleteResource(id: string) {
     });
     return {
       warning: true,
-      message: `Resource masih digunakan. Akan dihapus otomatis setelah jadwal terakhir selesai pada: ${dateStr}. Status resource sekarang dinonaktifkan.`,
+      message: `Resource masih digunakan. Akan dihapus otomatis setelah jadwal terakhir selesai pada: ${dateStr}.`,
     };
   }
 
-  // KASUS B: Tidak ada jadwal masa depan. Hapus langsung.
   const { error } = await supabase.from("resources").delete().eq("id", id);
-
   if (error) return { error: error.message };
 
+  revalidatePath("/admin/resources");
+  return { success: true };
+}
+
+// ============================================================
+// TEACHING SCHEDULES (Jadwal Kuliah Tetap)
+// ============================================================
+
+// --- TAMBAH JADWAL KULIAH ---
+export async function createTeachingSchedule(formData: FormData) {
+  const supabase = await createClient();
+
+  const resourceId = formData.get("resource_id") as string;
+  const dayOfWeek = parseInt(formData.get("day_of_week") as string);
+  const startTime = formData.get("start_time") as string;
+  const endTime = formData.get("end_time") as string;
+  const dosenPengampu = formData.get("dosen_pengampu") as string;
+  const matakuliah = formData.get("matakuliah") as string;
+  const kelas = formData.get("kelas") as string;
+
+  if (!resourceId || !dayOfWeek || !startTime || !endTime || !dosenPengampu || !matakuliah || !kelas) {
+    return { error: "Semua field jadwal kuliah wajib diisi." };
+  }
+
+  if (startTime >= endTime) {
+    return { error: "Jam selesai harus lebih besar dari jam mulai." };
+  }
+
+  const { error } = await supabase.from("teaching_schedules").insert({
+    resource_id: resourceId,
+    day_of_week: dayOfWeek,
+    start_time: startTime,
+    end_time: endTime,
+    dosen_pengampu: dosenPengampu,
+    matakuliah,
+    kelas,
+    is_offline: true, // Default: kelas berlangsung offline (ruangan terpakai)
+  });
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/resources");
+  return { success: true };
+}
+
+// --- TOGGLE STATUS ONLINE/OFFLINE JADWAL KULIAH ---
+export async function toggleTeachingScheduleStatus(scheduleId: string, isOffline: boolean) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("teaching_schedules")
+    .update({ is_offline: isOffline })
+    .eq("id", scheduleId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/resources");
+  return { success: true };
+}
+
+// --- HAPUS JADWAL KULIAH ---
+export async function deleteTeachingSchedule(scheduleId: string) {
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("teaching_schedules")
+    .delete()
+    .eq("id", scheduleId);
+
+  if (error) return { error: error.message };
   revalidatePath("/admin/resources");
   return { success: true };
 }
