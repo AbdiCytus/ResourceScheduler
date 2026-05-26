@@ -78,7 +78,7 @@ export async function createBooking(prevState: any, formData: FormData) {
   const supabase = await createClient();
 
   const resourceId = formData.get("resourceId") as string;
-  const title = formData.get("title") as string;
+  const titleRaw = (formData.get("title") as string)?.trim();
   const activityId = formData.get("activity_id") as string;
   const quantity = 1; // Ruangan selalu 1
   const bookingDate = formData.get("booking_date") as string;
@@ -136,6 +136,10 @@ export async function createBooking(prevState: any, formData: FormData) {
 
   if (!activityTemplate)
     return { error: "Template kegiatan tidak valid." };
+
+  // Resolve judul: jika template non-kustom, judul = nama template; jika kustom/mengajar, wajib diisi
+  const title = titleRaw || activityTemplate.name;
+  if (!title) return { error: "Judul kegiatan wajib diisi." };
 
   const activityWeight = activityTemplate.weight;
 

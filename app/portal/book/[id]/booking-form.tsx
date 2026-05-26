@@ -195,6 +195,13 @@ export default function BookingForm({
   const activityWeight = selectedActivity?.weight || 0;
   const totalScore = userRoleWeight + activityWeight;
 
+  // Apakah template ini perlu judul kustom?
+  // Hanya "mengajar" dan "kustom" yang perlu input judul manual
+  const needsCustomTitle = !selectedActivity ||
+    selectedActivity.name.toLowerCase().includes("mengajar") ||
+    selectedActivity.name.toLowerCase().includes("kustom") ||
+    selectedActivity.name.toLowerCase().includes("custom");
+
   // Tanggal dipilih → hari dalam minggu (1=Senin..5=Jumat)
   const selectedDayOfWeek = useMemo(() => {
     if (!selectedDate) return null;
@@ -476,16 +483,22 @@ export default function BookingForm({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
-                  Judul Kegiatan
-                </label>
-                <input
-                  type="text" name="title" required
-                  placeholder="Cth: Rapat Prodi"
-                  className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
-                />
-              </div>
+              {/* Field Judul Kegiatan: hanya tampil jika template "mengajar" atau "kustom" */}
+              {needsCustomTitle ? (
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
+                    Judul Kegiatan
+                  </label>
+                  <input
+                    type="text" name="title" required
+                    placeholder="Cth: Rapat Prodi"
+                    className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              ) : (
+                /* Jika template sudah jelas, judul = nama template (hidden) */
+                <input type="hidden" name="title" value={selectedActivity?.name || ""} />
+              )}
               <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
                   Tanggal
