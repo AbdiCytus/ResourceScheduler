@@ -24,6 +24,7 @@ function getDuration(start: string, end: string) {
 type Props = {
   resources: any[];
   schedules: any[];
+  teachingSchedules: any[];
   isSupervisor: boolean;
   settings: Record<string, string>;
 };
@@ -31,6 +32,7 @@ type Props = {
 export default function PortalClient({
   resources,
   schedules,
+  teachingSchedules,
   isSupervisor,
   settings,
 }: Props) {
@@ -88,29 +90,28 @@ export default function PortalClient({
     );
   });
 
-  // Logic Teks Operasional Panjang
   const isMaintenance = settings["is_maintenance"] === "true";
-  const opStart = settings["operational_start"] || "08:00";
-  const opEnd = settings["operational_end"] || "17:00";
-  const maxDur = settings["max_booking_duration"] || "4";
-  const maxDays = settings["max_advance_days"] || "14";
 
-  const operationalText = isMaintenance
-    ? "⚠️ SISTEM SEDANG DILAKUKAN MAINTENANCE (Peminjaman Ditutup Sementara)"
-    : `ℹ️ Jam operasional sistem: ${opStart} s/d ${opEnd} WITA • Maksimal durasi peminjaman: ${maxDur} jam • Maksimal waktu booking: ${maxDays} hari kedepan.`;
+  // Jadwal kuliah hari yang dipilih (untuk kalender)
+  const selectedDayOfWeek = selectedDate.getDay(); // 0=Minggu, 1=Senin...
+  const teachingOnSelectedDay = selectedDayOfWeek >= 1 && selectedDayOfWeek <= 5
+    ? teachingSchedules.filter((t) => t.day_of_week === selectedDayOfWeek)
+    : [];
+
+  const DAY_NAMES = ["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
 
   return (
     <div className="space-y-6">
-      {/* INFO OPERASIONAL */}
-      <div
-        className={`flex-1 w-full px-5 py-3 mb-5 rounded-xl text-xs font-bold border flex items-center shadow-sm leading-relaxed ${
-          isMaintenance
-            ? "bg-red-50 text-red-600 border-red-200 justify-center tracking-wider animate-pulse text-center"
-            : "bg-indigo-50 text-indigo-700 border-indigo-100"
-        }`}
-      >
-        {operationalText}
-      </div>
+      {/* BANNER MAINTENANCE / INFO HARI KERJA */}
+      {isMaintenance ? (
+        <div className="w-full px-5 py-3 mb-5 rounded-xl text-xs font-bold border bg-red-50 text-red-600 border-red-200 flex items-center justify-center tracking-wider animate-pulse text-center shadow-sm">
+          ⚠️ SISTEM SEDANG DILAKUKAN MAINTENANCE (Peminjaman Ditutup Sementara)
+        </div>
+      ) : (
+        <div className="w-full px-5 py-3 mb-5 rounded-xl text-xs font-bold border bg-indigo-50 text-indigo-700 border-indigo-100 flex items-center shadow-sm">
+          📅 Peminjaman tersedia <strong className="mx-1">Senin – Jumat</strong> · Ajukan minimal <strong className="ml-1">{settings["min_booking_notice"] || "30"} menit</strong> sebelum acara
+        </div>
+      )}
       {/* TABS NAVIGATION */}
       <div className="bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 grid grid-cols-2 gap-1">
         <button
@@ -352,41 +353,63 @@ export default function PortalClient({
                   <h3 className="font-bold text-slate-800 text-lg">
                     Jadwal:{" "}
                     {selectedDate.toLocaleDateString("id-ID", {
-                      weekday: "long",
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
+                      weekday: "long", day: "numeric", month: "long", year: "numeric",
                     })}
                   </h3>
                   <p className="text-slate-500 text-xs">
-                    {selectedDateSchedules.length} Kegiatan ditemukan.
+                    {selectedDateSchedules.length} booking peminjaman
+                    {teachingOnSelectedDay.length > 0 && ` · ${teachingOnSelectedDay.length} kelas tetap`}
                   </p>
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {/* Jadwal Kuliah Tetap hari ini */}
+                {teachingOnSelectedDay.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
+                      🎓 Jadwal Kuliah Tetap ({DAY_NAMES[selectedDayOfWeek]})
+                    </p>
+                    <div className="space-y-1.5">
+                      {teachingOnSelectedDay.map((t: any) => (
+                        <div key={t.id} className={`flex items-center justify-between rounded-lg px-3 py-2 border ${
+                          t.is_offline ? "bg-amber-50 border-amber-100" : "bg-slate-50 border-slate-100 opacity-60"
+                        }`}>
+                          <div>
+                            <p className="text-xs font-bold text-amber-800">{t.matakuliah} – {t.kelas}</p>
+                            <p className="text-[10px] text-amber-600">{t.dosen_pengampu} · 🏢 {t.resources?.name}</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-[10px] font-mono text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded">
+                              {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
+                            </span>
+                            {!t.is_offline && (
+                              <p className="text-[9px] text-slate-400 mt-0.5">Online</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Jadwal Booking Peminjaman */}
                 {selectedDateSchedules.length > 0 ? (
                   selectedDateSchedules.map((sch) => {
                     let statusStyle = "";
                     let statusBadge = "";
-
                     switch (sch.status) {
                       case "approved":
-                        statusStyle =
-                          "bg-white border-slate-200 hover:border-indigo-300";
-                        statusBadge =
-                          "bg-emerald-100 text-emerald-700 border-emerald-200";
+                        statusStyle = "bg-white border-slate-200 hover:border-indigo-300";
+                        statusBadge = "bg-emerald-100 text-emerald-700 border-emerald-200";
                         break;
                       case "pending":
                         statusStyle = "bg-amber-50/50 border-amber-200";
-                        statusBadge =
-                          "bg-amber-100 text-amber-700 border-amber-200";
+                        statusBadge = "bg-amber-100 text-amber-700 border-amber-200";
                         break;
                       case "cancelled":
-                        statusStyle =
-                          "bg-slate-50 border-slate-200 opacity-75 grayscale";
-                        statusBadge =
-                          "bg-slate-200 text-slate-600 border-slate-300";
+                        statusStyle = "bg-slate-50 border-slate-200 opacity-75 grayscale";
+                        statusBadge = "bg-slate-200 text-slate-600 border-slate-300";
                         break;
                       case "rejected":
                         statusStyle = "bg-red-50/50 border-red-200 opacity-80";
@@ -396,55 +419,30 @@ export default function PortalClient({
                         statusStyle = "bg-white border-slate-200";
                         statusBadge = "bg-slate-100 text-slate-600";
                     }
-
                     return (
-                      <div
-                        key={sch.id}
-                        className={`group flex flex-col sm:flex-row gap-4 p-4 rounded-xl border transition items-center ${statusStyle}`}
-                      >
+                      <div key={sch.id} className={`group flex flex-col sm:flex-row gap-4 p-4 rounded-xl border transition items-center ${statusStyle}`}>
                         <div className="sm:w-24 shrink-0 flex flex-col justify-center sm:text-center border-b sm:border-b-0 sm:border-r border-slate-200/60 sm:pr-4 pb-2 sm:pb-0 h-full">
-                          <span className="text-lg font-bold text-slate-800">
-                            {formatTime(sch.start_time)}
-                          </span>
-                          <span className="text-xs text-slate-400 font-mono">
-                            s/d {formatTime(sch.end_time)}
-                          </span>
+                          <span className="text-lg font-bold text-slate-800">{formatTime(sch.start_time)}</span>
+                          <span className="text-xs text-slate-400 font-mono">s/d {formatTime(sch.end_time)}</span>
                           <span className="text-[10px] text-indigo-500 font-bold mt-1 bg-indigo-50 rounded px-1 w-fit sm:mx-auto">
                             {getDuration(sch.start_time, sch.end_time)}
                           </span>
                         </div>
-
                         <div className="flex-1 w-full">
                           <div className="flex justify-between items-start mb-1 gap-2">
-                            <h4 className="font-bold text-slate-900 text-base line-clamp-1">
-                              {sch.title}
-                            </h4>
-
-                            <div className="flex items-center gap-1.5 shrink-0">
-
-                              <span
-                                className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${statusBadge}`}
-                              >
-                                {sch.status}
-                              </span>
-                            </div>
+                            <h4 className="font-bold text-slate-900 text-base line-clamp-1">{sch.title}</h4>
+                            <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${statusBadge}`}>
+                              {sch.status}
+                            </span>
                           </div>
-
                           <div className="flex flex-col gap-1 text-xs text-slate-500">
                             <div className="flex items-center gap-2">
                               <span className="w-4 text-center">🏢</span>
-                              <span className="font-semibold text-slate-700">
-                                {sch.resources?.name}
-                              </span>
+                              <span className="font-semibold text-slate-700">{sch.resources?.name}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="w-4 text-center">👤</span>
-                              <span>
-                                {(Array.isArray(sch.profiles)
-                                  ? sch.profiles[0]
-                                  : sch.profiles
-                                )?.full_name || "User"}
-                              </span>
+                              <span>{(Array.isArray(sch.profiles) ? sch.profiles[0] : sch.profiles)?.full_name || "User"}</span>
                             </div>
                           </div>
                         </div>
@@ -452,11 +450,11 @@ export default function PortalClient({
                     );
                   })
                 ) : (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-300 py-10">
+                  <div className={`h-full flex flex-col items-center justify-center text-slate-300 py-10 ${
+                    teachingOnSelectedDay.length > 0 ? "" : "h-full"
+                  }`}>
                     <div className="text-4xl mb-2">📅</div>
-                    <p className="text-sm font-medium">
-                      Tidak ada kegiatan aktif pada tanggal ini.
-                    </p>
+                    <p className="text-sm font-medium">Tidak ada booking peminjaman pada tanggal ini.</p>
                   </div>
                 )}
               </div>

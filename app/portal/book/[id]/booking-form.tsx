@@ -62,14 +62,11 @@ function isSameDate(isoString: string, inputDate: string) {
 function calculateFreeSlots(
   schedulesOnDate: any[],
   teachingOnDay: any[],
-  opStart: string,
-  opEnd: string,
   capacity: number,
 ) {
-  const [startH, startM] = opStart.split(":").map(Number);
-  const [endH, endM] = opEnd.split(":").map(Number);
-  const startOfDay = startH * 60 + startM;
-  const endOfDay = endH * 60 + endM;
+  // Rentang hari: 07:00 - 22:00 (tidak ada batas jam operasional)
+  const startOfDay = 7 * 60;
+  const endOfDay = 22 * 60;
 
   const events: { time: number; diff: number }[] = [];
 
@@ -86,7 +83,6 @@ function calculateFreeSlots(
     }
   });
 
-  // Tandai slot jadwal kuliah sebagai terpakai penuh
   teachingOnDay.forEach((t) => {
     const [sh, sm] = t.start_time.slice(0, 5).split(":").map(Number);
     const [eh, em] = t.end_time.slice(0, 5).split(":").map(Number);
@@ -228,11 +224,9 @@ export default function BookingForm({
     return calculateFreeSlots(
       displayedSchedules,
       teachingOnDay,
-      opStart,
-      opEnd,
       capacity,
     );
-  }, [selectedDate, displayedSchedules, teachingOnDay, opStart, opEnd, capacity, isWeekend]);
+  }, [selectedDate, displayedSchedules, teachingOnDay, capacity, isWeekend]);
 
   // Minimal tanggal yang bisa dipilih (hari ini, hanya Senin–Jumat)
   const today = new Date();
@@ -264,14 +258,9 @@ export default function BookingForm({
 
           {selectedDate && !isWeekend && (
             <div className="mx-6 mt-6 mb-2 p-4 bg-emerald-50 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-2 shrink-0">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-sm font-bold text-emerald-800 flex items-center gap-2">
-                  ✅ Waktu Kosong Tersedia
-                </h3>
-                <span className="text-[10px] text-emerald-600 font-mono bg-white px-2 py-0.5 rounded border border-emerald-200">
-                  Ops: {opStart} - {opEnd}
-                </span>
-              </div>
+              <h3 className="text-sm font-bold text-emerald-800 flex items-center gap-2 mb-3">
+                ✅ Slot Kosong Tersedia
+              </h3>
               {freeSlots.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {freeSlots.map((slot, idx) => (
@@ -281,13 +270,44 @@ export default function BookingForm({
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-emerald-600 italic">Jadwal penuh atau di luar jam operasional.</p>
+                <p className="text-xs text-emerald-600 italic">Tidak ada slot kosong tersedia.</p>
               )}
             </div>
           )}
 
-          {/* Jadwal Kuliah Hari Ini */}
-          {teachingOnDay.length > 0 && (
+          {/* Jadwal Kuliah Tetap - tampil selalu, difilter per hari jika tanggal dipilih */}
+          {!selectedDate && teachingSchedules.length > 0 && (
+            <div className="mx-6 mt-4 mb-2 shrink-0">
+              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
+                🎓 Jadwal Kuliah Tetap Ruangan Ini
+              </p>
+              <div className="space-y-1.5">
+                {[1, 2, 3, 4, 5].map((day) => {
+                  const daySchedules = teachingSchedules.filter((t) => t.day_of_week === day && t.is_offline);
+                  if (daySchedules.length === 0) return null;
+                  return (
+                    <div key={day}>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">{DAY_OF_WEEK[day]}</p>
+                      {daySchedules.map((t) => (
+                        <div key={t.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5 mb-1">
+                          <div>
+                            <p className="text-xs font-bold text-amber-800">{t.matakuliah} – {t.kelas}</p>
+                            <p className="text-[10px] text-amber-600">{t.dosen_pengampu}</p>
+                          </div>
+                          <span className="text-[10px] font-mono text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded">
+                            {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Jadwal Kuliah Hari Dipilih */}
+          {selectedDate && teachingOnDay.length > 0 && (
             <div className="mx-6 mt-3 mb-2 shrink-0">
               <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
                 🎓 Jadwal Kuliah Tetap ({DAY_OF_WEEK[selectedDayOfWeek ?? 0]})

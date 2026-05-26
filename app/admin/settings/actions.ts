@@ -128,3 +128,41 @@ export async function updateActivityWeight(id: string, weight: number) {
   revalidatePath("/admin/settings");
   return { success: true };
 }
+
+// --- BUAT TEMPLATE KEGIATAN BARU ---
+export async function createActivityTemplate(prevState: any, formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const name = (formData.get("name") as string)?.trim();
+  const weight = parseInt(formData.get("weight") as string);
+  const rolesRaw = formData.getAll("allowed_roles") as string[];
+
+  if (!name) return { error: "Nama kegiatan wajib diisi." };
+  if (!weight || weight < 1) return { error: "Bobot minimal 1." };
+  if (rolesRaw.length === 0) return { error: "Pilih minimal 1 role." };
+
+  const { error } = await supabase.from("activity_templates").insert({
+    name,
+    weight,
+    allowed_roles: rolesRaw,
+  });
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/settings");
+  return { success: `Template "${name}" berhasil ditambahkan.` };
+}
+
+// --- HAPUS TEMPLATE KEGIATAN ---
+export async function deleteActivityTemplate(id: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const { error } = await supabase.from("activity_templates").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/settings");
+  return { success: true };
+}

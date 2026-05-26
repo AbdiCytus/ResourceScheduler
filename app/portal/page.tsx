@@ -47,7 +47,6 @@ export default async function UserPortal({
 
   const { data: allSchedules } = await supabase
     .from("schedules")
-    // [PERBAIKAN DISINI] Tambahkan 'type' pada resources(name, type)
     .select(
       `id, title, start_time, end_time, resource_id, priority_level, quantity_borrowed, status, resources(name, type), profiles(full_name)`,
     )
@@ -57,6 +56,12 @@ export default async function UserPortal({
     )
     .order("start_time")
     .limit(500);
+
+  const { data: allTeachingSchedules } = await supabase
+    .from("teaching_schedules")
+    .select("id, day_of_week, start_time, end_time, matakuliah, kelas, dosen_pengampu, is_offline, resources(name)")
+    .order("day_of_week")
+    .order("start_time");
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 flex flex-col">
@@ -75,6 +80,7 @@ export default async function UserPortal({
         <PortalClient
           resources={resources}
           schedules={allSchedules || []}
+          teachingSchedules={allTeachingSchedules || []}
           isSupervisor={isKajur}
           settings={settings}
         />

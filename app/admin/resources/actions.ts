@@ -124,6 +124,26 @@ export async function createTeachingSchedule(formData: FormData) {
     return { error: "Jam selesai harus lebih besar dari jam mulai." };
   }
 
+  // Validasi overlap: cek apakah ada jadwal lain di hari & ruangan yang sama yang bertabrakan
+  const { data: existing } = await supabase
+    .from("teaching_schedules")
+    .select("start_time, end_time, matakuliah")
+    .eq("resource_id", resourceId)
+    .eq("day_of_week", dayOfWeek);
+
+  if (existing && existing.length > 0) {
+    for (const ex of existing) {
+      const exStart = ex.start_time.slice(0, 5);
+      const exEnd = ex.end_time.slice(0, 5);
+      // Overlap jika: newStart < exEnd DAN newEnd > exStart
+      if (startTime < exEnd && endTime > exStart) {
+        return {
+          error: `❌ Waktu bentrok dengan jadwal "${ex.matakuliah}" (${exStart}–${exEnd}). Pilih jam yang tidak bertabrakan.`,
+        };
+      }
+    }
+  }
+
   const { error } = await supabase.from("teaching_schedules").insert({
     resource_id: resourceId,
     day_of_week: dayOfWeek,
@@ -132,7 +152,7 @@ export async function createTeachingSchedule(formData: FormData) {
     dosen_pengampu: dosenPengampu,
     matakuliah,
     kelas,
-    is_offline: true, // Default: kelas berlangsung offline (ruangan terpakai)
+    is_offline: true,
   });
 
   if (error) return { error: error.message };
