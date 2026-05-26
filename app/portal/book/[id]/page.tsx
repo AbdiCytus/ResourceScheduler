@@ -136,7 +136,6 @@ export default async function BookResourcePage({
           resourceName={resource.name}
           capacity={resource.capacity}
           facilities={resource.facilities}
-          minNotice={settings["min_booking_notice"] || "30"}
           opStart={settings["operational_start"] || "08:00"}
           opEnd={settings["operational_end"] || "17:00"}
           existingSchedules={existingSchedules}

@@ -108,12 +108,6 @@ export async function createBooking(prevState: any, formData: FormData) {
   if (config["is_maintenance"] === "true")
     return { error: "⛔ Sistem sedang Maintenance." };
 
-  const minNoticeMinutes = parseInt(config["min_booking_notice"] || "30");
-  if (startDate.getTime() - now.getTime() < minNoticeMinutes * 60 * 1000) {
-    return {
-      error: `⏳ Pemesanan minimal ${minNoticeMinutes} menit sebelum acara dimulai.`,
-    };
-  }
 
   const {
     data: { user },

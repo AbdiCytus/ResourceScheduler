@@ -156,7 +156,6 @@ interface BookingFormProps {
   resourceName: string;
   capacity: number;
   facilities?: string[] | null;
-  minNotice: string;
   existingSchedules: any[];
   opStart: string;
   opEnd: string;
@@ -171,7 +170,6 @@ export default function BookingForm({
   resourceName,
   capacity,
   facilities,
-  minNotice,
   existingSchedules,
   opStart,
   opEnd,
@@ -423,7 +421,6 @@ export default function BookingForm({
               <div className="text-xs text-amber-900 leading-relaxed">
                 <p className="font-bold mb-0.5">Aturan Penting:</p>
                 <ul className="list-disc pl-3 space-y-0.5">
-                  <li>Booking minimal <strong>{minNotice} menit</strong> sebelum acara.</li>
                   <li>Peminjaman hanya berlaku <strong>Senin–Jumat</strong>.</li>
                   <li>Kegiatan berbobot tinggi wajib diajukan <strong>minimal H-1</strong>.</li>
                 </ul>

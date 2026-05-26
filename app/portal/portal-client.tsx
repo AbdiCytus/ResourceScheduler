@@ -109,7 +109,7 @@ export default function PortalClient({
         </div>
       ) : (
         <div className="w-full px-5 py-3 mb-5 rounded-xl text-xs font-bold border bg-indigo-50 text-indigo-700 border-indigo-100 flex items-center shadow-sm">
-          📅 Peminjaman tersedia <strong className="mx-1">Senin – Jumat</strong> · Ajukan minimal <strong className="ml-1">{settings["min_booking_notice"] || "30"} menit</strong> sebelum acara
+          📅 Peminjaman tersedia <strong className="mx-1">Senin – Jumat</strong>
         </div>
       )}
       {/* TABS NAVIGATION */}
