@@ -5,7 +5,7 @@ export default async function ResourcesPage() {
   const supabase = await createClient();
 
   // 1. Ambil semua data resource, jadwal kuliah, dan dosen
-  const [{ data: resources }, { data: teachingSchedules }, { data: dosenProfiles }] = await Promise.all([
+  const [{ data: resources }, { data: teachingSchedules }, { data: dosenRole }] = await Promise.all([
     supabase
       .from("resources")
       .select("*")
@@ -16,11 +16,22 @@ export default async function ResourcesPage() {
       .order("day_of_week")
       .order("start_time"),
     supabase
-      .from("profiles")
-      .select("id, full_name")
-      .eq("role", "dosen")
-      .order("full_name"),
+      .from("roles")
+      .select("id")
+      .eq("name", "dosen")
+      .single(),
   ]);
+
+  // Ambil list dosen berdasarkan role_id
+  let dosenList: string[] = [];
+  if (dosenRole?.id) {
+    const { data: dosenProfiles } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("role_id", dosenRole.id)
+      .order("full_name");
+    dosenList = (dosenProfiles || []).map((p) => p.full_name).filter(Boolean);
+  }
 
   // 2. Logic Lazy Deletion
   const now = new Date();
@@ -43,7 +54,7 @@ export default async function ResourcesPage() {
         new Date(r.scheduled_for_deletion_at) > now
     ) || [];
 
-  const dosenList = (dosenProfiles || []).map((p) => p.full_name).filter(Boolean);
+
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
