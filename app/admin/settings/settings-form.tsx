@@ -3,9 +3,9 @@
 import { useState, useActionState } from "react";
 import {
   updateSettings,
-  updateActivityWeight,
   createActivityTemplate,
   deleteActivityTemplate,
+  updateActivityTemplate,
 } from "./actions";
 
 type ActivityTemplate = {
@@ -27,6 +27,157 @@ const LEVEL_STYLE: Record<string, string> = {
 };
 const LEVEL_LABEL: Record<string, string> = { rendah: "Rendah", sedang: "Sedang", tinggi: "Tinggi" };
 
+// ─── Row edit inline template ───
+function TemplateRow({
+  t,
+  onSave,
+  onDelete,
+}: {
+  t: ActivityTemplate;
+  onSave: (id: string, name: string, weight: number, roles: string[]) => Promise<{ error?: string } | undefined>;
+  onDelete: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // Edit state
+  const [editName, setEditName] = useState(t.name);
+  const [editLevel, setEditLevel] = useState(WEIGHT_TO_LEVEL[t.weight] || "sedang");
+  const [editRoles, setEditRoles] = useState<string[]>(t.allowed_roles);
+
+  const toggleRole = (r: string) =>
+    setEditRoles((prev) => prev.includes(r) ? prev.filter((x) => x !== r) : [...prev, r]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    setEditError(null);
+    const result = await onSave(t.id, editName, LEVEL_TO_WEIGHT[editLevel], editRoles);
+    setSaving(false);
+    if (result?.error) {
+      setEditError(result.error);
+    } else {
+      setEditing(false);
+    }
+  };
+
+  if (editing) {
+    return (
+      <tr className="bg-indigo-50/50">
+        <td className="px-6 py-3" colSpan={4}>
+          <div className="space-y-3">
+            {editError && (
+              <p className="text-xs text-red-600 font-bold">{editError}</p>
+            )}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nama Kegiatan</label>
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Bobot / Prioritas</label>
+                <select
+                  value={editLevel}
+                  onChange={(e) => setEditLevel(e.target.value)}
+                  className="w-full rounded-lg border border-slate-300 bg-white p-2 text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+                >
+                  <option value="rendah">Rendah</option>
+                  <option value="sedang">Sedang</option>
+                  <option value="tinggi">Tinggi</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Role yang Diizinkan</label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {ALL_ROLES.map((r) => (
+                    <label key={r} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={editRoles.includes(r)}
+                        onChange={() => toggleRole(r)}
+                        className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="capitalize font-medium text-slate-700">{r}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={saving}
+                className="px-4 py-1.5 text-sm font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition disabled:opacity-50"
+              >
+                {saving ? "Menyimpan..." : "Simpan"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEditing(false); setEditError(null); setEditName(t.name); setEditLevel(WEIGHT_TO_LEVEL[t.weight] || "sedang"); setEditRoles(t.allowed_roles); }}
+                className="px-4 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded-lg transition"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+
+  const level = WEIGHT_TO_LEVEL[t.weight] || "sedang";
+  return (
+    <tr className="hover:bg-slate-50 transition-colors">
+      <td className="px-6 py-4 font-medium text-slate-800">{t.name}</td>
+      <td className="px-6 py-4">
+        <div className="flex flex-wrap gap-1">
+          {t.allowed_roles.map((r: string) => (
+            <span key={r} className="text-[9px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-full font-bold uppercase">
+              {r}
+            </span>
+          ))}
+        </div>
+      </td>
+      <td className="px-6 py-4 text-center">
+        <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${LEVEL_STYLE[level]}`}>
+          {LEVEL_LABEL[level]}
+        </span>
+      </td>
+      <td className="px-6 py-4 text-center">
+        <div className="flex items-center justify-center gap-1">
+          {/* Edit */}
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="p-1.5 text-indigo-500 hover:bg-indigo-50 rounded-lg transition"
+            title="Edit template"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4">
+              <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+            </svg>
+          </button>
+          {/* Hapus */}
+          <button
+            type="button"
+            onClick={() => onDelete(t.id)}
+            className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition"
+            title="Hapus template"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export default function SettingsForm({
   initialSettings,
   activityTemplates: initialTemplates,
@@ -36,13 +187,9 @@ export default function SettingsForm({
 }) {
   const [state, formAction, isPending] = useActionState(updateSettings, null);
   const [createState, createAction, isCreating] = useActionState(createActivityTemplate, null);
-
-  const [editingWeights, setEditingWeights] = useState<Record<string, string>>({});
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<ActivityTemplate[]>(initialTemplates);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // Hapus dari local state setelah delete
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus template kegiatan ini?")) return;
     setDeletingId(id);
@@ -55,25 +202,19 @@ export default function SettingsForm({
     }
   };
 
-  const handleWeightSave = async (id: string) => {
-    const levelStr = editingWeights[id];
-    if (!levelStr) return;
-    const newWeight = LEVEL_TO_WEIGHT[levelStr];
-    setSavingId(id);
-    await updateActivityWeight(id, newWeight);
-    // Update local state
-    setTemplates((prev) => prev.map((t) => t.id === id ? { ...t, weight: newWeight } : t));
-    setSavingId(null);
-    setEditingWeights((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
+  const handleSaveTemplate = async (id: string, name: string, weight: number, roles: string[]) => {
+    const res = await updateActivityTemplate(id, name, weight, roles);
+    if (!res?.error) {
+      setTemplates((prev) =>
+        prev.map((t) => t.id === id ? { ...t, name, weight, allowed_roles: roles } : t)
+      );
+    }
+    return res;
   };
 
   return (
     <div className="space-y-8">
-      {/* ===================== FORM UTAMA (role weight + maintenance) ===================== */}
+      {/* ===================== FORM UTAMA ===================== */}
       <form
         action={formAction}
         className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden"
@@ -92,7 +233,6 @@ export default function SettingsForm({
         )}
 
         <div className="p-6 md:p-8 space-y-8">
-
           {/* --- JAM AKTIF GEDUNG --- */}
           <div>
             <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2 flex items-center gap-2">
@@ -113,43 +253,13 @@ export default function SettingsForm({
                   defaultValue={initialSettings["building_close"] || "18:00"}
                   className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500"
                   required />
-                <p className="text-[10px] text-slate-400 mt-1">Waktu gedung berhenti beroperasi. Di luar jam ini, semua ruangan berstatus Nonaktif.</p>
+                <p className="text-[10px] text-slate-400 mt-1">Waktu gedung berhenti beroperasi.</p>
               </div>
             </div>
             <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium">
-              ⚠️ Peminjaman di luar jam ini akan <strong>ditolak otomatis</strong> oleh sistem. Perubahan berlaku segera setelah disimpan.
+              ⚠️ Peminjaman di luar jam ini akan <strong>ditolak otomatis</strong> oleh sistem.
             </div>
           </div>
-
-          {/* --- ATURAN BOOKING --- */}
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">
-              Aturan Peminjaman
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Maks H- Hari Booking</label>
-                <input type="number" name="max_advance_days"
-                  defaultValue={initialSettings["max_advance_days"] || "14"}
-                  className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500"
-                  required />
-                <p className="text-[10px] text-slate-400 mt-1">Berapa hari ke depan peminjaman bisa diajukan.</p>
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Min. Waktu Pengajuan (Menit)</label>
-                <input type="number" name="min_booking_notice"
-                  defaultValue={initialSettings["min_booking_notice"] || "30"}
-                  className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500"
-                  required />
-                <p className="text-[10px] text-slate-400 mt-1">Minimal berapa menit sebelum acara harus diajukan.</p>
-              </div>
-            </div>
-            <div className="mt-3 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-xs text-indigo-700 font-medium">
-              ℹ️ Peminjaman hanya berlaku <strong>Senin – Jumat</strong>. Tidak ada batasan durasi maksimal per sesi.
-            </div>
-          </div>
-
-
 
           {/* --- MAINTENANCE --- */}
           <div>
@@ -169,7 +279,6 @@ export default function SettingsForm({
               </label>
             </div>
           </div>
-
         </div>
 
         <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end">
@@ -187,7 +296,7 @@ export default function SettingsForm({
             🏷️ Manajemen Template Kegiatan
           </h3>
           <p className="text-xs text-slate-500 mt-1">
-            Tambah, edit bobot, atau hapus template kegiatan yang tersedia saat peminjaman.
+            Tambah, edit, atau hapus template kegiatan yang tersedia saat peminjaman.
           </p>
         </div>
 
@@ -248,8 +357,8 @@ export default function SettingsForm({
               <tr>
                 <th className="px-6 py-3">Nama Kegiatan</th>
                 <th className="px-6 py-3">Role Diizinkan</th>
-                <th className="px-6 py-3 text-center w-40">Bobot</th>
-                <th className="px-6 py-3 text-center w-24">Hapus</th>
+                <th className="px-6 py-3 text-center w-32">Bobot</th>
+                <th className="px-6 py-3 text-center w-24">Aksi</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50 text-sm">
@@ -260,60 +369,14 @@ export default function SettingsForm({
                   </td>
                 </tr>
               )}
-              {templates.map((t) => {
-                return (
-                  <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-800">{t.name}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {t.allowed_roles.map((r: string) => (
-                          <span key={r} className="text-[9px] bg-indigo-50 text-indigo-600 border border-indigo-100 px-1.5 py-0.5 rounded-full font-bold uppercase">
-                            {r}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {editingWeights[t.id] !== undefined ? (
-                          <>
-                            <select
-                              value={editingWeights[t.id]}
-                              onChange={(e) => setEditingWeights((prev) => ({ ...prev, [t.id]: e.target.value }))}
-                              className="text-sm rounded-lg border border-slate-200 p-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
-                            >
-                              <option value="rendah">Rendah</option>
-                              <option value="sedang">Sedang</option>
-                              <option value="tinggi">Tinggi</option>
-                            </select>
-                            <button type="button" onClick={() => handleWeightSave(t.id)}
-                              disabled={savingId === t.id}
-                              className="text-[10px] font-bold bg-indigo-600 text-white px-2 py-1.5 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50">
-                              {savingId === t.id ? "..." : "Simpan"}
-                            </button>
-                            <button type="button" onClick={() => setEditingWeights((prev) => { const n = { ...prev }; delete n[t.id]; return n; })}
-                              className="text-[10px] text-slate-400 hover:text-slate-600 px-1.5 py-1.5 rounded-lg">✕</button>
-                          </>
-                        ) : (
-                          <button type="button"
-                            onClick={() => setEditingWeights((prev) => ({ ...prev, [t.id]: WEIGHT_TO_LEVEL[t.weight] || "sedang" }))}
-                            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition hover:opacity-80 ${LEVEL_STYLE[WEIGHT_TO_LEVEL[t.weight] || "sedang"]}`}>
-                            {LEVEL_LABEL[WEIGHT_TO_LEVEL[t.weight] || "sedang"] || "Sedang"}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <button type="button" onClick={() => handleDelete(t.id)}
-                        disabled={deletingId === t.id}
-                        className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition disabled:opacity-50"
-                        title="Hapus template">
-                        {deletingId === t.id ? "..." : "🗑️"}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
+              {templates.map((t) => (
+                <TemplateRow
+                  key={t.id}
+                  t={t}
+                  onSave={handleSaveTemplate}
+                  onDelete={handleDelete}
+                />
+              ))}
             </tbody>
           </table>
         </div>

@@ -162,3 +162,23 @@ export async function deleteActivityTemplate(id: string) {
   revalidatePath("/admin/settings");
   return { success: true };
 }
+
+// --- UPDATE TEMPLATE KEGIATAN (nama, bobot, role) ---
+export async function updateActivityTemplate(id: string, name: string, weight: number, allowedRoles: string[]) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  if (!name?.trim()) return { error: "Nama kegiatan wajib diisi." };
+  if (!weight || weight < 1) return { error: "Bobot tidak valid." };
+  if (allowedRoles.length === 0) return { error: "Pilih minimal 1 role." };
+
+  const { error } = await supabase
+    .from("activity_templates")
+    .update({ name: name.trim(), weight, allowed_roles: allowedRoles })
+    .eq("id", id);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/settings");
+  return { success: true };
+}
