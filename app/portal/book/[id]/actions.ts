@@ -175,11 +175,10 @@ export async function createBooking(prevState: any, formData: FormData) {
 
   const { data: resource } = await supabase
     .from("resources")
-    .select("capacity, version")
+    .select("capacity")
     .eq("id", resourceId)
     .single();
   const capacityLimit = resource?.capacity || 1;
-  const currentVersion = resource?.version || 1;
 
   // CEK: H-Day vs H-1+
   const todayMidnight = new Date();
@@ -288,26 +287,27 @@ export async function createBooking(prevState: any, formData: FormData) {
   }
 
   // =========================================================================
-  // 5. IMPLEMENTASI CONCURRENCY CONTROL (OPTIMISTIC LOCKING)
+  // 5. CONCURRENCY GUARD: Re-check overlap sesaat sebelum insert
+  //    (Tidak memerlukan UPDATE ke tabel resources — aman untuk semua role)
   // =========================================================================
+  const excludeIds = preemptedVictims.map((v) => v.id);
+  const { data: recheck } = await supabase
+    .from("schedules")
+    .select("id")
+    .eq("resource_id", resourceId)
+    .eq("status", "approved")
+    .lt("start_time", endStr)
+    .gt("end_time", startStr);
 
-  // Mencoba mengunci resource dengan menaikkan versinya.
-  // Jika query ini gagal mengembalikan data (karena versi di database sudah dinaikkan user lain sedetik yang lalu),
-  // maka terdeteksi Race Condition!
-  const { data: lockData, error: lockError } = await supabase
-    .from("resources")
-    .update({ version: currentVersion + 1 })
-    .eq("id", resourceId)
-    .eq("version", currentVersion) // Validasi versi terakhir
-    .select();
-
-  if (lockError || !lockData || lockData.length === 0) {
+  const recheckFiltered = (recheck || []).filter((r) => !excludeIds.includes(r.id));
+  if (recheckFiltered.length > 0) {
     return {
       error:
-        "🚨 Terjadi perebutan data (Race Condition)! Slot pada resource ini baru saja diperbarui oleh pengguna lain di detik yang sama. Silakan muat ulang halaman.",
+        "🚨 Slot baru saja diambil pengguna lain. Muat ulang halaman dan coba lagi.",
     };
   }
   // =========================================================================
+
 
   // 6. EKSEKUSI PREEMPTION (Jika berhasil melewati Lock)
   if (preemptedVictims.length > 0) {
