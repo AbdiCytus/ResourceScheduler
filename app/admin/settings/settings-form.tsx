@@ -136,42 +136,7 @@ export default function SettingsForm({
             </div>
           </div>
 
-          {/* --- BOBOT ROLE --- */}
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2 flex items-center gap-2">
-              🏆 Bobot Role Pengguna
-            </h3>
-            <p className="text-xs text-slate-500 mb-4">
-              Skor akhir = Bobot Role + Bobot Template Kegiatan. Skor lebih tinggi menang saat perebutan ruangan.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200">
-                <div className="space-y-4">
-                  {[
-                    { label: "Admin", name: "role_weight_admin", default: "30" },
-                    { label: "Dosen", name: "role_weight_dosen", default: "22" },
-                    { label: "Mahasiswa", name: "role_weight_mahasiswa", default: "20" },
-                  ].map((item) => (
-                    <div key={item.name} className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-500">{item.label}</label>
-                      <input type="number" name={item.name}
-                        defaultValue={initialSettings[item.name] || item.default}
-                        className="w-24 rounded-lg border-slate-200 p-2 text-sm text-center font-bold focus:ring-2 focus:ring-indigo-500" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 flex flex-col justify-center">
-                <h4 className="text-sm font-bold text-indigo-900 mb-2">💡 Cara Kerja Skor</h4>
-                <p className="text-xs text-indigo-700 leading-relaxed">
-                  Skor akhir = <strong>Bobot Role</strong> + <strong>Bobot Template Kegiatan</strong>.
-                </p>
-                <p className="text-xs text-indigo-600 mt-2 leading-relaxed">
-                  Pemesanan dengan skor lebih tinggi bisa menggeser yang lebih rendah (sebelum Freeze Time).
-                </p>
-              </div>
-            </div>
-          </div>
+
 
           {/* --- MAINTENANCE --- */}
           <div>

@@ -167,7 +167,8 @@ export async function createBooking(prevState: any, formData: FormData) {
 
   const activityWeight = activityTemplate.weight;
 
-  const newScore = roleWeight + activityWeight;
+  // Skor hanya berdasarkan bobot kegiatan (tidak ada bobot role)
+  const newScore = activityWeight;
 
   // Derive priority_level dari bobot kegiatan (untuk backward compat)
   const priority = activityWeight >= 30 ? "high" : activityWeight >= 20 ? "medium" : "low";

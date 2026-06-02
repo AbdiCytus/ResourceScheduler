@@ -204,7 +204,7 @@ export default function BookingForm({
 
   const selectedActivity = activityTemplates.find((t) => t.id === selectedActivityId);
   const activityWeight = selectedActivity?.weight || 0;
-  const totalScore = userRoleWeight + activityWeight;
+  const totalScore = activityWeight; // Hanya bobot kegiatan, tidak ada bobot role
 
   // Apakah template ini perlu judul kustom?
   // Hanya "mengajar" dan "kustom" yang perlu input judul manual
@@ -323,24 +323,26 @@ export default function BookingForm({
               <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
                 🎓 Jadwal Kuliah Tetap Ruangan Ini
               </p>
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {[1, 2, 3, 4, 5].map((day) => {
                   const daySchedules = teachingSchedules.filter((t) => t.day_of_week === day && t.is_offline);
                   if (daySchedules.length === 0) return null;
                   return (
                     <div key={day}>
                       <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">{DAY_OF_WEEK[day]}</p>
-                      {daySchedules.map((t) => (
-                        <div key={t.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-3 py-1.5 mb-1">
-                          <div>
-                            <p className="text-xs font-bold text-amber-800">{t.matakuliah} – {t.kelas}</p>
-                            <p className="text-[10px] text-amber-600">{t.dosen_pengampu}</p>
+                      <div className="grid grid-cols-2 gap-1">
+                        {daySchedules.map((t) => (
+                          <div key={t.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+                            <div className="min-w-0 mr-1">
+                              <p className="text-[10px] font-bold text-amber-800 truncate">{t.matakuliah} – {t.kelas}</p>
+                              <p className="text-[9px] text-amber-600 truncate">{t.dosen_pengampu}</p>
+                            </div>
+                            <span className="text-[9px] font-mono text-amber-700 bg-white border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
+                              {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
+                            </span>
                           </div>
-                          <span className="text-[10px] font-mono text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded">
-                            {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
-                          </span>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   );
                 })}
@@ -354,14 +356,18 @@ export default function BookingForm({
               <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
                 🎓 Jadwal Kuliah Tetap ({DAY_OF_WEEK[selectedDayOfWeek ?? 0]})
               </p>
-              <div className="space-y-1.5">
+              <div className="grid grid-cols-2 gap-1">
                 {teachingOnDay.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
-                    <div>
-                      <p className="text-xs font-bold text-amber-800">{t.matakuliah} – {t.kelas}</p>
-                      <p className="text-[10px] text-amber-600">{t.dosen_pengampu}</p>
+                  <div key={t.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+                    <div className="min-w-0 mr-1">
+                      <p className="text-[10px] font-bold text-amber-800 truncate">{t.matakuliah} – {t.kelas}</p>
+                      <p className="text-[9px] text-amber-600 truncate">{t.dosen_pengampu}</p>
                     </div>
-                    <span className="text-[10px] font-mono text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded">
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${
+                      t.is_offline
+                        ? "text-amber-700 bg-white border-amber-200"
+                        : "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    }`}>
                       {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
                     </span>
                   </div>
@@ -679,7 +685,7 @@ export default function BookingForm({
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Power Skor Anda</p>
                       <div className="text-sm font-medium text-slate-300 mt-1">
-                        Role ({userRoleWeight}) + Kegiatan ({activityWeight})
+                        Kegiatan: {selectedActivity?.name || "-"}
                       </div>
                     </div>
                     <div className="text-3xl font-black text-emerald-400 tracking-tight">
