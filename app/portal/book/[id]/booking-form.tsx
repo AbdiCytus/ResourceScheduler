@@ -159,6 +159,9 @@ interface BookingFormProps {
   existingSchedules: any[];
   opStart: string;
   opEnd: string;
+  buildingOpen: string;
+  buildingClose: string;
+  closureDates: string[];
   userRoleWeight: number;
   activityTemplates: ActivityTemplate[];
   teachingSchedules: TeachingSchedule[];
@@ -173,6 +176,9 @@ export default function BookingForm({
   existingSchedules,
   opStart,
   opEnd,
+  buildingOpen,
+  buildingClose,
+  closureDates,
   userRoleWeight,
   activityTemplates,
   teachingSchedules,
