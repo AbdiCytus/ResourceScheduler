@@ -35,7 +35,14 @@ export async function addBuildingClosure(prevState: any, formData: FormData) {
 
   revalidatePath("/admin/closures");
   revalidatePath("/portal");
-  return { success: `Tanggal ${date} berhasil ditambahkan sebagai hari tutup gedung.` };
+
+  // Auto-cancel semua booking yang sudah approved di tanggal ini
+  const cancelled = await cancelBookingsOnClosedDay(date);
+  const cancelledMsg = cancelled.cancelled > 0
+    ? ` ${cancelled.cancelled} booking yang ada di tanggal ini telah dibatalkan otomatis.`
+    : "";
+
+  return { success: `Tanggal ${date} berhasil ditambahkan sebagai hari tutup gedung.${cancelledMsg}` };
 }
 
 export async function deleteBuildingClosure(id: string) {

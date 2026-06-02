@@ -1,8 +1,56 @@
 "use client";
 
 import { useState } from "react";
-import { createResource, updateResource, deleteResource } from "./actions";
+import { createResource, updateResource, deleteResource, toggleTeachingScheduleStatus } from "./actions";
 import TeachingScheduleModal, { type TeachingSchedule } from "./teaching-schedule-modal";
+
+const DAY_NAMES: Record<number, string> = {
+  1: "Sen", 2: "Sel", 3: "Rab", 4: "Kam", 5: "Jum",
+};
+
+// Komponen toggle cepat per baris jadwal
+function QuickToggleRow({ schedule }: { schedule: TeachingSchedule }) {
+  const [isOffline, setIsOffline] = useState(schedule.is_offline);
+  const [loading, setLoading] = useState(false);
+
+  const handleToggle = async () => {
+    setLoading(true);
+    const newVal = !isOffline;
+    const res = await toggleTeachingScheduleStatus(schedule.id, newVal);
+    if (!res?.error) setIsOffline(newVal);
+    setLoading(false);
+  };
+
+  return (
+    <div className="flex items-center gap-2 group">
+      <button
+        onClick={handleToggle}
+        disabled={loading}
+        title={isOffline ? "Klik untuk tandai KOSONG (dosen tidak masuk)" : "Klik untuk tandai AKTIF (kelas berlangsung)"}
+        className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+          isOffline ? "bg-rose-500" : "bg-slate-300"
+        } disabled:opacity-50`}
+      >
+        <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
+          isOffline ? "translate-x-4" : "translate-x-0"
+        }`} />
+      </button>
+      <div className="min-w-0">
+        <p className="text-[10px] font-bold text-slate-700 truncate">
+          {DAY_NAMES[schedule.day_of_week]} · {schedule.start_time.slice(0, 5)}–{schedule.end_time.slice(0, 5)}
+        </p>
+        <p className="text-[9px] text-slate-400 truncate">{schedule.matakuliah} – {schedule.kelas}</p>
+      </div>
+      <span className={`ml-auto shrink-0 text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${
+        isOffline
+          ? "bg-rose-50 text-rose-600 border-rose-200"
+          : "bg-emerald-50 text-emerald-600 border-emerald-200"
+      }`}>
+        {isOffline ? "Aktif" : "Kosong"}
+      </span>
+    </div>
+  );
+}
 
 type Resource = {
   id: string;
@@ -157,15 +205,27 @@ export default function ResourceManagement({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <button
-                      onClick={() => setScheduleModal({ isOpen: true, resourceId: res.id, resourceName: res.name })}
-                      className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition"
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
-                        <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
-                      </svg>
-                      {roomSchedules.length > 0 ? `${roomSchedules.length} Jadwal` : "Atur Jadwal"}
-                    </button>
+                    <div className="space-y-1.5 min-w-[260px]">
+                      {roomSchedules.length === 0 ? (
+                        <span className="text-xs text-slate-400 italic">Belum ada jadwal</span>
+                      ) : (
+                        roomSchedules.slice(0, 3).map((s) => (
+                          <QuickToggleRow key={s.id} schedule={s} />
+                        ))
+                      )}
+                      {roomSchedules.length > 3 && (
+                        <span className="text-[10px] text-slate-400">+{roomSchedules.length - 3} lainnya</span>
+                      )}
+                      <button
+                        onClick={() => setScheduleModal({ isOpen: true, resourceId: res.id, resourceName: res.name })}
+                        className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-700 mt-1 transition"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clipRule="evenodd" />
+                        </svg>
+                        Kelola Semua Jadwal
+                      </button>
+                    </div>
                   </td>
                   <td className="px-6 py-4 text-right flex justify-end gap-1">
                     <button onClick={() => openEditForm(res)} disabled={isPendingDelete}

@@ -185,6 +185,8 @@ export default function BookingForm({
     activityTemplates[0]?.id || ""
   );
   const [showScore, setShowScore] = useState(false);
+  const [timeMode, setTimeMode] = useState<"simple" | "custom">("simple");
+  const [selectedSlot, setSelectedSlot] = useState<{ start: string; end: string } | null>(null);
 
   useEffect(() => {
     if (state?.success)
@@ -202,22 +204,35 @@ export default function BookingForm({
     selectedActivity.name.toLowerCase().includes("kustom") ||
     selectedActivity.name.toLowerCase().includes("custom");
 
-  // Tanggal dipilih → hari dalam minggu (1=Senin..5=Jumat)
+  // ── Komputasi berdasarkan tanggal ──
+  const today = new Date();
+  const todayStr = today.toISOString().split("T")[0];
+  const isHDay = selectedDate === todayStr;
+  const isClosureDay = closureDates.includes(selectedDate);
+
   const selectedDayOfWeek = useMemo(() => {
     if (!selectedDate) return null;
-    const d = new Date(selectedDate);
-    return d.getDay(); // 0=Minggu, 6=Sabtu
+    const d = new Date(selectedDate + "T00:00:00");
+    return d.getDay();
   }, [selectedDate]);
 
   const isWeekend = selectedDayOfWeek === 0 || selectedDayOfWeek === 6;
 
-  // Jadwal kuliah tetap pada hari yang dipilih (is_offline = true)
+  // Semua jadwal kuliah di hari terpilih (untuk mode sederhana)
   const teachingOnDay = useMemo(() => {
     if (!selectedDayOfWeek || isWeekend) return [];
-    return teachingSchedules.filter(
-      (t) => t.day_of_week === selectedDayOfWeek && t.is_offline
-    );
+    return teachingSchedules.filter((t) => t.day_of_week === selectedDayOfWeek);
   }, [selectedDayOfWeek, teachingSchedules, isWeekend]);
+
+  // Untuk free slot visualization di panel kiri (hanya is_offline=true yang dianggap blocked)
+  const teachingOnDayActive = teachingOnDay.filter((t) => t.is_offline);
+
+  // Template slots: H-day hanya slot kosong (is_offline=false); H-1+ semua slot
+  const templateSlots = useMemo(() => {
+    if (!selectedDate || isWeekend || isClosureDay) return [];
+    if (isHDay) return teachingOnDay.filter((t) => !t.is_offline);
+    return teachingOnDay;
+  }, [teachingOnDay, isHDay, isWeekend, isClosureDay, selectedDate]);
 
   const displayedSchedules = useMemo(() => {
     if (!selectedDate) return existingSchedules;
@@ -226,16 +241,13 @@ export default function BookingForm({
 
   const freeSlots = useMemo(() => {
     if (!selectedDate || isWeekend) return [];
-    return calculateFreeSlots(
-      displayedSchedules,
-      teachingOnDay,
-      capacity,
-    );
-  }, [selectedDate, displayedSchedules, teachingOnDay, capacity, isWeekend]);
+    return calculateFreeSlots(displayedSchedules, teachingOnDayActive, capacity);
+  }, [selectedDate, displayedSchedules, teachingOnDayActive, capacity, isWeekend]);
 
-  // Minimal tanggal yang bisa dipilih (hari ini, hanya Senin–Jumat)
-  const today = new Date();
-  const todayStr = today.toISOString().split("T")[0];
+  // Reset slot saat tanggal/mode berubah
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { setSelectedSlot(null); }, [selectedDate, timeMode]);
+
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -518,17 +530,104 @@ export default function BookingForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Mulai</label>
-                <input name="start_time" type="time" required
-                  className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+            {/* ===== PILIHAN WAKTU (DUAL MODE) ===== */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase">Waktu Peminjaman</label>
+                <div className="flex text-[10px] font-bold rounded-lg overflow-hidden border border-slate-200">
+                  <button type="button" onClick={() => setTimeMode("simple")}
+                    className={`px-3 py-1.5 transition ${timeMode === "simple" ? "bg-indigo-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                    Sederhana
+                  </button>
+                  <button type="button" onClick={() => setTimeMode("custom")}
+                    className={`px-3 py-1.5 transition ${timeMode === "custom" ? "bg-indigo-600 text-white" : "bg-white text-slate-500 hover:bg-slate-50"}`}>
+                    Kustom
+                  </button>
+                </div>
               </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Selesai</label>
-                <input name="end_time" type="time" required
-                  className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-              </div>
+
+              {timeMode === "simple" ? (
+                <div className="space-y-2">
+                  {!selectedDate ? (
+                    <p className="text-xs text-slate-400 italic py-2">Pilih tanggal terlebih dahulu untuk melihat slot waktu.</p>
+                  ) : isClosureDay ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs font-bold text-red-700">🚫 Gedung tutup pada tanggal ini.</div>
+                  ) : isWeekend ? (
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-xs font-bold text-red-700">🚫 Gedung tidak beroperasi hari Sabtu &amp; Minggu.</div>
+                  ) : templateSlots.length === 0 ? (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-700 font-medium">
+                      {isHDay
+                        ? "⚠️ Tidak ada slot kosong hari ini. Semua jadwal kuliah sedang berlangsung."
+                        : "ℹ️ Tidak ada jadwal kuliah di hari ini. Gunakan mode Kustom untuk isi waktu manual."}
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {isHDay && (
+                        <p className="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-2 py-1 rounded font-bold">
+                          ⚡ H-Day: Hanya slot kosong (dosen tidak hadir) yang tersedia.
+                        </p>
+                      )}
+                      {!isHDay && (
+                        <p className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-1 rounded font-bold">
+                          📌 H-1+: Jadwal mengajar akan ditimpa jika skor Anda cukup.
+                        </p>
+                      )}
+                      {templateSlots.map((t) => {
+                        const s = t.start_time.slice(0, 5);
+                        const e = t.end_time.slice(0, 5);
+                        const isActive = selectedSlot?.start === s && selectedSlot?.end === e;
+                        return (
+                          <button key={t.id} type="button"
+                            onClick={() => setSelectedSlot({ start: s, end: e })}
+                            className={`flex items-center justify-between w-full px-4 py-3 rounded-xl border text-sm transition ${
+                              isActive
+                                ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
+                                : !t.is_offline
+                                ? "bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-emerald-100"
+                                : "bg-slate-50 border-slate-200 text-slate-800 hover:bg-indigo-50 hover:border-indigo-200"
+                            }`}>
+                            <div className="text-left">
+                              <p className="font-bold text-sm">{t.matakuliah} — {t.kelas}</p>
+                              {t.dosen_pengampu && <p className={`text-[10px] mt-0.5 ${isActive ? "text-indigo-200" : "text-slate-400"}`}>{t.dosen_pengampu}</p>}
+                            </div>
+                            <div className="text-right shrink-0 ml-3">
+                              <p className="font-mono font-bold text-sm">{s}–{e}</p>
+                              {!t.is_offline && <span className={`text-[9px] font-bold ${isActive ? "text-emerald-300" : "text-emerald-600"}`}>● Kosong</span>}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {selectedSlot && (
+                    <>
+                      <input type="hidden" name="start_time" value={selectedSlot.start} />
+                      <input type="hidden" name="end_time" value={selectedSlot.end} />
+                      <p className="text-[10px] text-indigo-600 font-bold mt-1">✅ Dipilih: {selectedSlot.start} – {selectedSlot.end}</p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Mulai</label>
+                      <input name="start_time" type="time" required
+                        min={buildingOpen} max={buildingClose}
+                        className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 mb-1">Selesai</label>
+                      <input name="end_time" type="time" required
+                        min={buildingOpen} max={buildingClose}
+                        className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400 bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
+                    🕐 Jam aktif gedung: <strong>{buildingOpen} – {buildingClose}</strong>. Booking di luar jam ini akan ditolak. Jika waktu yang dipilih overlap dengan jadwal mengajar aktif, booking juga akan ditolak.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div>
