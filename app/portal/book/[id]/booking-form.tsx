@@ -317,38 +317,7 @@ export default function BookingForm({
             </div>
           )}
 
-          {/* Jadwal Kuliah Tetap - tampil selalu, difilter per hari jika tanggal dipilih */}
-          {!selectedDate && teachingSchedules.length > 0 && (
-            <div className="mx-6 mt-4 mb-2 shrink-0">
-              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
-                🎓 Jadwal Kuliah Tetap Ruangan Ini
-              </p>
-              <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((day) => {
-                  const daySchedules = teachingSchedules.filter((t) => t.day_of_week === day && t.is_offline);
-                  if (daySchedules.length === 0) return null;
-                  return (
-                    <div key={day}>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase mb-1">{DAY_OF_WEEK[day]}</p>
-                      <div className="grid grid-cols-2 gap-1">
-                        {daySchedules.map((t) => (
-                          <div key={t.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
-                            <div className="min-w-0 mr-1">
-                              <p className="text-[10px] font-bold text-amber-800 truncate">{t.matakuliah} – {t.kelas}</p>
-                              <p className="text-[9px] text-amber-600 truncate">{t.dosen_pengampu}</p>
-                            </div>
-                            <span className="text-[9px] font-mono text-amber-700 bg-white border border-amber-200 px-1.5 py-0.5 rounded shrink-0">
-                              {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
+
 
           {/* Jadwal Kuliah Hari Dipilih */}
           {selectedDate && teachingOnDay.length > 0 && (

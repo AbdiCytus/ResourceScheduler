@@ -405,17 +405,17 @@ export default function PortalClient({
                     <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
                       🎓 Jadwal Kuliah Tetap ({DAY_NAMES[selectedDayOfWeek]})
                     </p>
-                    <div className="space-y-1.5">
+                    <div className="grid grid-cols-2 gap-1.5">
                       {teachingOnSelectedDay.map((t: any) => (
                         <div key={t.id} className={`flex items-center justify-between rounded-lg px-3 py-2 border ${
                           t.is_offline ? "bg-amber-50 border-amber-100" : "bg-slate-50 border-slate-100 opacity-60"
                         }`}>
-                          <div>
-                            <p className="text-xs font-bold text-amber-800">{t.matakuliah} – {t.kelas}</p>
-                            <p className="text-[10px] text-amber-600">{t.dosen_pengampu} · 🏢 {t.resources?.name}</p>
+                          <div className="min-w-0 mr-2">
+                            <p className="text-[10px] font-bold text-amber-800 truncate">{t.matakuliah} – {t.kelas}</p>
+                            <p className="text-[9px] text-amber-600 truncate">{t.dosen_pengampu} · 🏢 {t.resources?.name}</p>
                           </div>
-                          <div className="text-right">
-                            <span className="text-[10px] font-mono text-amber-700 bg-white border border-amber-200 px-2 py-0.5 rounded">
+                          <div className="text-right shrink-0">
+                            <span className="text-[9px] font-mono text-amber-700 bg-white border border-amber-200 px-1.5 py-0.5 rounded">
                               {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
                             </span>
                             {!t.is_offline && (

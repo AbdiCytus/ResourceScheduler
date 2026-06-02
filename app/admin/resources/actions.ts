@@ -187,3 +187,56 @@ export async function deleteTeachingSchedule(scheduleId: string) {
   revalidatePath("/admin/resources");
   return { success: true };
 }
+
+// --- UPDATE JADWAL KULIAH ---
+export async function updateTeachingSchedule(formData: FormData) {
+  const supabase = await createClient();
+
+  const scheduleId = formData.get("schedule_id") as string;
+  const dayOfWeek = parseInt(formData.get("day_of_week") as string);
+  const startTime = formData.get("start_time") as string;
+  const endTime = formData.get("end_time") as string;
+  const matakuliah = formData.get("matakuliah") as string;
+  const kelas = formData.get("kelas") as string;
+  const dosenPengampu = formData.get("dosen_pengampu") as string;
+
+  if (!startTime || !endTime || startTime >= endTime)
+    return { error: "Jam selesai harus lebih dari jam mulai." };
+
+  // Cek overlap dengan jadwal lain di ruangan yang sama (kecuali jadwal ini sendiri)
+  const { data: current } = await supabase
+    .from("teaching_schedules")
+    .select("resource_id")
+    .eq("id", scheduleId)
+    .single();
+
+  if (!current) return { error: "Jadwal tidak ditemukan." };
+
+  const { data: existing } = await supabase
+    .from("teaching_schedules")
+    .select("start_time, end_time, matakuliah")
+    .eq("resource_id", current.resource_id)
+    .eq("day_of_week", dayOfWeek)
+    .neq("id", scheduleId);
+
+  if (existing) {
+    for (const ex of existing) {
+      const exStart = ex.start_time.slice(0, 5);
+      const exEnd = ex.end_time.slice(0, 5);
+      if (startTime < exEnd && endTime > exStart) {
+        return {
+          error: `❌ Waktu bentrok dengan jadwal "${ex.matakuliah}" (${exStart}–${exEnd}).`,
+        };
+      }
+    }
+  }
+
+  const { error } = await supabase
+    .from("teaching_schedules")
+    .update({ day_of_week: dayOfWeek, start_time: startTime, end_time: endTime, matakuliah, kelas, dosen_pengampu: dosenPengampu })
+    .eq("id", scheduleId);
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/resources");
+  return { success: true };
+}
