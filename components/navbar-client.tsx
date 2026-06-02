@@ -12,6 +12,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
   const isLoginPage = pathname === "/login";
   const isAdminActive = pathname.startsWith("/admin");
   const isSupervisorActive = pathname.startsWith("/supervisor");
+  const isPortalActive = pathname.startsWith("/portal");
 
   const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
@@ -105,7 +106,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                 {user && (
                   <>
                     {/* Menu Portal */}
-                    <NavLink href="/portal" activePath={pathname}>
+                    <NavLink href="/portal" activePath={pathname} forceActive={isPortalActive}>
                       <span className="flex items-center gap-1.5">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"

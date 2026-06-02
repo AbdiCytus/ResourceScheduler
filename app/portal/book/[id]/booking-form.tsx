@@ -384,8 +384,14 @@ export default function BookingForm({
                               <span className="line-clamp-1">{sch.title}</span>
                             </div>
                             <div className="flex items-center gap-2 mb-1 flex-wrap">
-                              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded uppercase border bg-indigo-50 text-indigo-700 border-indigo-200">
-                                {sch.score} PTS
+                              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase border ${
+                                sch.priority_level === "high"
+                                  ? "bg-red-50 text-red-700 border-red-200"
+                                  : sch.priority_level === "medium"
+                                  ? "bg-amber-50 text-amber-700 border-amber-200"
+                                  : "bg-slate-50 text-slate-500 border-slate-200"
+                              }`}>
+                                {sch.priority_level === "high" ? "Prioritas Tinggi" : sch.priority_level === "medium" ? "Prioritas Sedang" : "Prioritas Rendah"}
                               </span>
                             </div>
                             <div className="text-[10px] text-slate-400 mt-1">

@@ -98,21 +98,13 @@ export default async function BookResourcePage({
 
   // Kalkulasi Skor dan Freeze Time
   const existingSchedules = (rawSchedules || []).map((sch) => {
-    const vRole =
-      (Array.isArray(sch.profiles) ? sch.profiles[0] : sch.profiles)?.roles
-        ?.name || "mahasiswa";
-    let vRoleWeight = wMahasiswa;
-    if (vRole === "admin") vRoleWeight = wAdmin;
-    else if (vRole === "kajur") vRoleWeight = wKajur;
-    else if (vRole === "dosen") vRoleWeight = wDosen;
-
-    const vUrgWeight =
+    // Skor hanya dari bobot kegiatan (priority level) — konsisten dengan actions.ts
+    const score =
       sch.priority_level === "high"
         ? 60
         : sch.priority_level === "medium"
           ? 30
           : 10;
-    const score = vRoleWeight + vUrgWeight;
 
     const victimStart = new Date(sch.start_time);
     const diffHours =
