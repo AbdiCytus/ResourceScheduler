@@ -108,6 +108,30 @@ export async function createBooking(prevState: any, formData: FormData) {
   if (config["is_maintenance"] === "true")
     return { error: "⛔ Sistem sedang Maintenance." };
 
+  // CEK: Hari tutup gedung
+  const bookingDateStr = bookingDate; // format YYYY-MM-DD
+  const { data: closure } = await supabase
+    .from("building_closures")
+    .select("reason")
+    .eq("date", bookingDateStr)
+    .maybeSingle();
+  if (closure)
+    return { error: `⛔ Gedung tutup pada ${bookingDateStr}${closure.reason ? `: ${closure.reason}` : ""}.` };
+
+  // CEK: Jam aktif gedung
+  const buildingOpen = config["building_open"] || "08:00";
+  const buildingClose = config["building_close"] || "18:00";
+  const [boH, boM] = buildingOpen.split(":").map(Number);
+  const [bcH, bcM] = buildingClose.split(":").map(Number);
+  const [reqSH, reqSM] = startTimeRaw.split(":").map(Number);
+  const [reqEH, reqEM] = endTimeRaw.split(":").map(Number);
+  const openMins = boH * 60 + boM;
+  const closeMins = bcH * 60 + bcM;
+  const reqStartMins = reqSH * 60 + reqSM;
+  const reqEndMins = reqEH * 60 + reqEM;
+  if (reqStartMins < openMins || reqEndMins > closeMins)
+    return { error: `⛔ Waktu peminjaman harus dalam jam aktif gedung (${buildingOpen}–${buildingClose}).` };
+
 
   const {
     data: { user },
@@ -143,16 +167,6 @@ export async function createBooking(prevState: any, formData: FormData) {
 
   const activityWeight = activityTemplate.weight;
 
-  // VALIDASI H-1 untuk kegiatan bobot tinggi (>= 30)
-  if (activityWeight >= 30) {
-    const bookingDateObj = new Date(bookingDate);
-    const todayMidnight = new Date();
-    todayMidnight.setHours(0, 0, 0, 0);
-    const diffDays = Math.floor((bookingDateObj.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
-    if (diffDays < 1)
-      return { error: `⏰ Kegiatan "${activityTemplate.name}" berbobot tinggi. Wajib diajukan minimal H-1 (satu hari sebelumnya).` };
-  }
-
   const newScore = roleWeight + activityWeight;
 
   // Derive priority_level dari bobot kegiatan (untuk backward compat)
@@ -166,31 +180,39 @@ export async function createBooking(prevState: any, formData: FormData) {
   const capacityLimit = resource?.capacity || 1;
   const currentVersion = resource?.version || 1;
 
-  // VALIDASI: Cek bentrok dengan Jadwal Kuliah Tetap (is_offline = true)
-  const { data: teachingConflicts } = await supabase
+  // CEK: H-Day vs H-1+
+  const todayMidnight = new Date();
+  todayMidnight.setHours(0, 0, 0, 0);
+  const bookingDateObj = new Date(bookingDate + "T00:00:00");
+  const diffDays = Math.floor((bookingDateObj.getTime() - todayMidnight.getTime()) / (1000 * 60 * 60 * 24));
+  const isHDay = diffDays === 0;
+
+  // Ambil jadwal mengajar di ruangan & hari ini
+  const { data: teachingOnDay } = await supabase
     .from("teaching_schedules")
-    .select("matakuliah, kelas, start_time, end_time")
+    .select("id, matakuliah, kelas, start_time, end_time, is_offline")
     .eq("resource_id", resourceId)
-    .eq("is_offline", true)
     .eq("day_of_week", dayOfWeek);
 
-  if (teachingConflicts && teachingConflicts.length > 0) {
-    const [bsH, bsM] = startTimeRaw.split(":").map(Number);
-    const [beH, beM] = endTimeRaw.split(":").map(Number);
-    const bStart = bsH * 60 + bsM;
-    const bEnd = beH * 60 + beM;
-    for (const t of teachingConflicts) {
-      const [tsH, tsM] = t.start_time.slice(0, 5).split(":").map(Number);
-      const [teH, teM] = t.end_time.slice(0, 5).split(":").map(Number);
-      const tStart = tsH * 60 + tsM;
-      const tEnd = teH * 60 + teM;
-      if (bStart < tEnd && bEnd > tStart) {
-        return { error: `❌ Ruangan sedang digunakan kuliah: ${t.matakuliah} (${t.kelas}) pukul ${t.start_time.slice(0, 5)}–${t.end_time.slice(0, 5)}.` };
-      }
-    }
+  const teachingConflicts = (teachingOnDay || []).filter((t) => {
+    const [tsH, tsM] = t.start_time.slice(0, 5).split(":").map(Number);
+    const [teH, teM] = t.end_time.slice(0, 5).split(":").map(Number);
+    const tStart = tsH * 60 + tsM;
+    const tEnd = teH * 60 + teM;
+    return reqStartMins < tEnd && reqEndMins > tStart;
+  });
+
+  if (isHDay) {
+    // H-Day: hanya boleh jika semua slot yang overlap adalah is_offline=false (kosong)
+    const activeConflicts = teachingConflicts.filter((t) => t.is_offline);
+    if (activeConflicts.length > 0)
+      return { error: `❌ H-Day: Ruangan sedang digunakan kuliah (${activeConflicts[0].matakuliah} ${activeConflicts[0].start_time.slice(0,5)}–${activeConflicts[0].end_time.slice(0,5)}). Hanya slot kosong yang bisa dipinjam hari ini.` };
+  } else {
+    // H-1+: jadwal mengajar yang is_offline=true akan ditimpa otomatis (lanjut, tidak error)
+    // Tidak ada blokir dari sisi teaching schedule
   }
 
-  // 3. CEK BENTROK
+  // 3. CEK BENTROK booking lain
   const { data: conflicts } = await supabase
     .from("schedules")
     .select(

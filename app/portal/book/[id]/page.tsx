@@ -66,12 +66,19 @@ export default async function BookResourcePage({
     t.allowed_roles.includes(roleName) || t.allowed_roles.includes("admin") && roleName === "admin"
   );
 
-  // Ambil jadwal kuliah tetap resource ini (untuk validasi di UI)
-  const { data: teachingSchedules } = await supabase
-    .from("teaching_schedules")
-    .select("*")
-    .eq("resource_id", id)
-    .eq("is_offline", true); // Hanya yang offline (ruangan terpakai)
+  // Ambil jadwal kuliah tetap resource ini + closure dates
+  const [{ data: teachingSchedules }, { data: buildingClosures }] = await Promise.all([
+    supabase
+      .from("teaching_schedules")
+      .select("*")
+      .eq("resource_id", id),
+    supabase
+      .from("building_closures")
+      .select("date")
+      .gte("date", new Date().toISOString().split("T")[0]),
+  ]);
+
+  const closureDates = (buildingClosures || []).map((c: any) => c.date);
 
   const actualNow = new Date();
   const startOfDay = new Date(actualNow);
@@ -136,12 +143,15 @@ export default async function BookResourcePage({
           resourceName={resource.name}
           capacity={resource.capacity}
           facilities={resource.facilities}
+          existingSchedules={existingSchedules}
           opStart={settings["operational_start"] || "08:00"}
           opEnd={settings["operational_end"] || "17:00"}
-          existingSchedules={existingSchedules}
+          buildingOpen={settings["building_open"] || "08:00"}
+          buildingClose={settings["building_close"] || "18:00"}
           userRoleWeight={userRoleWeight}
           activityTemplates={activityTemplates}
           teachingSchedules={teachingSchedules || []}
+          closureDates={closureDates}
           userRole={roleName}
         />
       </div>

@@ -51,14 +51,10 @@ export async function updateSettings(prevState: any, formData: FormData) {
       key: "max_booking_duration",
       value: formData.get("max_booking_duration") as string,
     },
-    {
-      key: "max_advance_days",
-      value: formData.get("max_advance_days") as string,
-    },
-    {
-      key: "min_booking_notice",
-      value: formData.get("min_booking_notice") as string,
-    },
+    { key: "max_advance_days", value: formData.get("max_advance_days") as string },
+    { key: "min_booking_notice", value: formData.get("min_booking_notice") as string },
+    { key: "building_open", value: (formData.get("building_open") as string) || "08:00" },
+    { key: "building_close", value: (formData.get("building_close") as string) || "18:00" },
     // Field Bobot Role
     {
       key: "role_weight_admin",

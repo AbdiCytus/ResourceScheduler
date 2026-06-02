@@ -25,6 +25,7 @@ type Props = {
   resources: any[];
   schedules: any[];
   teachingSchedules: any[];
+  closureDates: string[];
   isSupervisor: boolean;
   settings: Record<string, string>;
 };
@@ -33,6 +34,7 @@ export default function PortalClient({
   resources,
   schedules,
   teachingSchedules,
+  closureDates,
   isSupervisor,
   settings,
 }: Props) {
@@ -91,6 +93,41 @@ export default function PortalClient({
   });
 
   const isMaintenance = settings["is_maintenance"] === "true";
+  const buildingOpen = settings["building_open"] || "08:00";
+  const buildingClose = settings["building_close"] || "18:00";
+
+  // ── Fungsi status ruangan real-time ──
+  const getRoomStatus = (resourceId: string): "kosong" | "berlangsung" | "nonaktif" => {
+    const nowDay = now.getDay(); // 0=Minggu
+    const todayStr = now.toISOString().split("T")[0];
+
+    // Cek hari tutup gedung atau weekend
+    if (nowDay === 0 || nowDay === 6 || closureDates.includes(todayStr)) return "nonaktif";
+
+    // Cek jam aktif gedung
+    const [openH, openM] = buildingOpen.split(":").map(Number);
+    const [closeH, closeM] = buildingClose.split(":").map(Number);
+    const nowMins = now.getHours() * 60 + now.getMinutes();
+    const openMins = openH * 60 + openM;
+    const closeMins = closeH * 60 + closeM;
+    if (nowMins < openMins || nowMins >= closeMins) return "nonaktif";
+
+    // Cek jadwal mengajar aktif sekarang (is_offline=true)
+    const activeTeaching = teachingSchedules.some((t) => {
+      if (t.resources?.id !== resourceId && !teachingSchedules.find(x => x.id === t.id && (x as any).resource_id === resourceId)) {
+        // fallback: check by resource_id on object
+      }
+      if (t.day_of_week !== nowDay) return false;
+      if (!t.is_offline) return false;
+      const [sh, sm] = t.start_time.slice(0, 5).split(":").map(Number);
+      const [eh, em] = t.end_time.slice(0, 5).split(":").map(Number);
+      const tStart = sh * 60 + sm;
+      const tEnd = eh * 60 + em;
+      return nowMins >= tStart && nowMins < tEnd;
+    });
+
+    return activeTeaching ? "berlangsung" : "kosong";
+  };
 
   // Jadwal kuliah hari yang dipilih (untuk kalender)
   const selectedDayOfWeek = selectedDate.getDay(); // 0=Minggu, 1=Senin...
@@ -234,38 +271,40 @@ export default function PortalClient({
               const isClosingDown = !!res.scheduled_for_deletion_at;
               const isInactive = !res.is_active;
               const isDisabled = isClosingDown || isInactive || isMaintenance;
+              const roomStatus = getRoomStatus(res.id);
               const unit = "Org";
+
+              // Badge status ruangan
+              const statusBadge = isMaintenance
+                ? { label: "MAINTENANCE", cls: "bg-red-100 text-red-600 border-red-200" }
+                : isClosingDown
+                ? { label: "SEGERA DIHAPUS", cls: "bg-red-100 text-red-600 border-red-200" }
+                : isInactive
+                ? { label: "NON-AKTIF", cls: "bg-slate-200 text-slate-500 border-slate-300" }
+                : roomStatus === "berlangsung"
+                ? { label: "🔴 Sedang Berlangsung", cls: "bg-rose-50 text-rose-600 border-rose-200" }
+                : roomStatus === "nonaktif"
+                ? { label: "⚫ Nonaktif", cls: "bg-slate-100 text-slate-500 border-slate-200" }
+                : { label: "🟢 Kosong", cls: "bg-emerald-50 text-emerald-600 border-emerald-200" };
 
               return (
                 <div
                   key={res.id}
-                  className={`bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between transition hover:shadow-md ${isDisabled ? "opacity-75 grayscale bg-slate-50" : ""}`}
+                  className={`bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between transition hover:shadow-md ${
+                    isDisabled ? "opacity-75 grayscale bg-slate-50" :
+                    roomStatus === "berlangsung" ? "border-rose-200" : ""
+                  }`}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-3">
-                      <div
-                        className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl border ${res.type === "Room" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-orange-50 text-orange-600 border-orange-100"}`}
-                      >
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl border ${
+                        res.type === "Room" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-orange-50 text-orange-600 border-orange-100"
+                      }`}>
                         {res.type === "Room" ? "🏢" : "💻"}
                       </div>
-
-                      {isMaintenance ? (
-                        <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full border border-red-200">
-                          MAINTENANCE
-                        </span>
-                      ) : isClosingDown ? (
-                        <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded-full border border-red-200">
-                          SEGERA DIHAPUS
-                        </span>
-                      ) : isInactive ? (
-                        <span className="bg-slate-200 text-slate-500 text-[10px] font-bold px-2 py-1 rounded-full border border-slate-300">
-                          NON-AKTIF
-                        </span>
-                      ) : (
-                        <span className="bg-slate-100 text-slate-600 text-[10px] font-bold px-2 py-1 rounded-full">
-                          {res.capacity} {unit}
-                        </span>
-                      )}
+                      <span className={`text-[9px] font-bold px-2 py-1 rounded-full border ${statusBadge.cls}`}>
+                        {statusBadge.label}
+                      </span>
                     </div>
 
                     <h3 className="text-lg font-bold text-slate-900 mb-1">
@@ -300,25 +339,23 @@ export default function PortalClient({
                   </div>
 
                   {isSupervisor ? (
-                    <button
-                      disabled
-                      className="w-full bg-slate-50 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed"
-                    >
+                    <button disabled className="w-full bg-slate-50 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed">
                       Mode Pantau
                     </button>
                   ) : isDisabled ? (
-                    <button
-                      disabled
-                      className="w-full bg-slate-100 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed"
-                    >
+                    <button disabled className="w-full bg-slate-100 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed">
                       {isMaintenance ? "Booking Ditutup" : "Tidak Tersedia"}
                     </button>
                   ) : (
                     <Link
                       href={`/portal/book/${res.id}`}
-                      className="block text-center bg-white border border-indigo-200 text-indigo-600 font-bold py-2 rounded-lg text-xs mt-4 hover:bg-indigo-600 hover:text-white transition"
+                      className={`block text-center font-bold py-2 rounded-lg text-xs mt-4 transition border ${
+                        roomStatus === "berlangsung"
+                          ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white"
+                          : "bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white"
+                      }`}
                     >
-                      Pinjam Ruangan →
+                      {roomStatus === "berlangsung" ? "Lihat Jadwal →" : "Pinjam Ruangan →"}
                     </Link>
                   )}
                 </div>

@@ -63,6 +63,14 @@ export default async function UserPortal({
     .order("day_of_week")
     .order("start_time");
 
+  // Fetch building closures (tanggal tutup gedung)
+  const { data: buildingClosures } = await supabase
+    .from("building_closures")
+    .select("date, reason")
+    .gte("date", new Date().toISOString().split("T")[0]);
+
+  const closureDates = (buildingClosures || []).map((c: any) => c.date);
+
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8 flex flex-col">
       <CustomToast />
@@ -81,6 +89,7 @@ export default async function UserPortal({
           resources={resources}
           schedules={allSchedules || []}
           teachingSchedules={allTeachingSchedules || []}
+          closureDates={closureDates}
           isSupervisor={isKajur}
           settings={settings}
         />
