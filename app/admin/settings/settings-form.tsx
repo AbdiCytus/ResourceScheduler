@@ -80,6 +80,34 @@ export default function SettingsForm({
 
         <div className="p-6 md:p-8 space-y-8">
 
+          {/* --- JAM AKTIF GEDUNG --- */}
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2 flex items-center gap-2">
+              🏛️ Jam Aktif Gedung
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Jam Buka</label>
+                <input type="time" name="building_open"
+                  defaultValue={initialSettings["building_open"] || "08:00"}
+                  className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500"
+                  required />
+                <p className="text-[10px] text-slate-400 mt-1">Waktu gedung mulai beroperasi.</p>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">Jam Tutup</label>
+                <input type="time" name="building_close"
+                  defaultValue={initialSettings["building_close"] || "18:00"}
+                  className="w-full rounded-xl border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500"
+                  required />
+                <p className="text-[10px] text-slate-400 mt-1">Waktu gedung berhenti beroperasi. Di luar jam ini, semua ruangan berstatus Nonaktif.</p>
+              </div>
+            </div>
+            <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium">
+              ⚠️ Peminjaman di luar jam ini akan <strong>ditolak otomatis</strong> oleh sistem. Perubahan berlaku segera setelah disimpan.
+            </div>
+          </div>
+
           {/* --- ATURAN BOOKING --- */}
           <div>
             <h3 className="text-lg font-bold text-slate-800 mb-4 border-b pb-2">

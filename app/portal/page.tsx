@@ -59,7 +59,7 @@ export default async function UserPortal({
 
   const { data: allTeachingSchedules } = await supabase
     .from("teaching_schedules")
-    .select("id, day_of_week, start_time, end_time, matakuliah, kelas, dosen_pengampu, is_offline, resources(name)")
+    .select("id, resource_id, day_of_week, start_time, end_time, matakuliah, kelas, dosen_pengampu, is_offline, resources(name)")
     .order("day_of_week")
     .order("start_time");
 

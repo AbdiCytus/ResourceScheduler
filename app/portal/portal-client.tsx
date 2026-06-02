@@ -112,11 +112,9 @@ export default function PortalClient({
     const closeMins = closeH * 60 + closeM;
     if (nowMins < openMins || nowMins >= closeMins) return "nonaktif";
 
-    // Cek jadwal mengajar aktif sekarang (is_offline=true)
+    // Cek jadwal mengajar aktif sekarang (is_offline=true) untuk resource ini
     const activeTeaching = teachingSchedules.some((t) => {
-      if (t.resources?.id !== resourceId && !teachingSchedules.find(x => x.id === t.id && (x as any).resource_id === resourceId)) {
-        // fallback: check by resource_id on object
-      }
+      if (t.resource_id !== resourceId) return false;
       if (t.day_of_week !== nowDay) return false;
       if (!t.is_offline) return false;
       const [sh, sm] = t.start_time.slice(0, 5).split(":").map(Number);
