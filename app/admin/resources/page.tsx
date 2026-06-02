@@ -4,8 +4,8 @@ import ResourceManagement from "./resource-management";
 export default async function ResourcesPage() {
   const supabase = await createClient();
 
-  // 1. Ambil semua data resource beserta jadwal kuliahnya
-  const [{ data: resources }, { data: teachingSchedules }] = await Promise.all([
+  // 1. Ambil semua data resource, jadwal kuliah, dan dosen
+  const [{ data: resources }, { data: teachingSchedules }, { data: dosenProfiles }] = await Promise.all([
     supabase
       .from("resources")
       .select("*")
@@ -15,6 +15,11 @@ export default async function ResourcesPage() {
       .select("*")
       .order("day_of_week")
       .order("start_time"),
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .eq("role", "dosen")
+      .order("full_name"),
   ]);
 
   // 2. Logic Lazy Deletion
@@ -38,12 +43,15 @@ export default async function ResourcesPage() {
         new Date(r.scheduled_for_deletion_at) > now
     ) || [];
 
+  const dosenList = (dosenProfiles || []).map((p) => p.full_name).filter(Boolean);
+
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         <ResourceManagement
           initialResources={cleanResources}
           teachingSchedules={teachingSchedules || []}
+          dosenList={dosenList}
         />
       </div>
     </div>

@@ -22,22 +22,94 @@ export type TeachingSchedule = {
 
 const DAY_NAMES = ["", "Senin", "Selasa", "Rabu", "Kamis", "Jumat"];
 
+// ─── Searchable Dosen Dropdown ───
+function SearchableDosenSelect({
+  name,
+  defaultValue = "",
+  dosenList,
+  placeholder = "Cari atau ketik nama dosen...",
+}: {
+  name: string;
+  defaultValue?: string;
+  dosenList: string[];
+  placeholder?: string;
+}) {
+  const [query, setQuery] = useState(defaultValue);
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(defaultValue);
+
+  const filtered = dosenList.filter((d) =>
+    d.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const handleSelect = (name: string) => {
+    setSelected(name);
+    setQuery(name);
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative">
+      {/* Hidden input for form submission */}
+      <input type="hidden" name={name} value={selected} />
+      <input
+        type="text"
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setSelected(e.target.value); // allow free-text too
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        placeholder={placeholder}
+        className="w-full rounded-xl p-2.5 text-sm border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+      />
+      {open && (
+        <div className="absolute z-50 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-44 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-slate-400 italic">
+              Tidak ada dosen ditemukan. Nilai akan disimpan sebagai teks.
+            </div>
+          ) : (
+            filtered.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onMouseDown={() => handleSelect(d)}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition ${
+                  selected === d ? "font-bold text-indigo-700 bg-indigo-50" : "text-slate-700"
+                }`}
+              >
+                {d}
+              </button>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type Props = {
   resourceId: string;
   resourceName: string;
   schedules: TeachingSchedule[];
+  dosenList: string[];
   onClose: () => void;
 };
 
 // ─── Row dengan mode edit inline ───
 function ScheduleRow({
   s,
+  dosenList,
   onToggle,
   onDelete,
   onSaveEdit,
   isLoading,
 }: {
   s: TeachingSchedule;
+  dosenList: string[];
   onToggle: (id: string, cur: boolean) => void;
   onDelete: (id: string) => void;
   onSaveEdit: (formData: FormData) => Promise<{ error?: string } | undefined>;
@@ -108,7 +180,11 @@ function ScheduleRow({
         </div>
         <div>
           <label className="block text-xs font-bold text-slate-500 mb-1">Dosen Pengampu</label>
-          <input name="dosen_pengampu" defaultValue={s.dosen_pengampu} required className="w-full rounded-xl p-2.5 text-sm border border-slate-200 bg-white" />
+          <SearchableDosenSelect
+            name="dosen_pengampu"
+            defaultValue={s.dosen_pengampu}
+            dosenList={dosenList}
+          />
         </div>
         <div className="flex justify-end gap-2 pt-1">
           <button type="button" onClick={() => { setEditing(false); setEditError(null); }}
@@ -192,6 +268,7 @@ export default function TeachingScheduleModal({
   resourceId,
   resourceName,
   schedules,
+  dosenList,
   onClose,
 }: Props) {
   const [isLoading, setIsLoading] = useState(false);
@@ -258,6 +335,7 @@ export default function TeachingScheduleModal({
             <ScheduleRow
               key={s.id}
               s={s}
+              dosenList={dosenList}
               onToggle={handleToggle}
               onDelete={handleDelete}
               onSaveEdit={updateTeachingSchedule}
@@ -301,7 +379,10 @@ export default function TeachingScheduleModal({
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-500 mb-1">Dosen Pengampu</label>
-                <input name="dosen_pengampu" required placeholder="cth: Dr. Budi Santoso" className="w-full rounded-xl p-2.5 text-sm border border-slate-200 bg-white" />
+                <SearchableDosenSelect
+                  name="dosen_pengampu"
+                  dosenList={dosenList}
+                />
               </div>
               <div className="flex justify-end gap-2 pt-1">
                 <button type="button" onClick={() => { setShowAddForm(false); setError(null); }}

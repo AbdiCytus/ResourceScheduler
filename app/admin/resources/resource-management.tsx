@@ -128,9 +128,11 @@ type ModalConfig = {
 export default function ResourceManagement({
   initialResources,
   teachingSchedules,
+  dosenList,
 }: {
   initialResources: Resource[];
   teachingSchedules: TeachingSchedule[];
+  dosenList: string[];
 }) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<"create" | "edit">("create");
@@ -350,6 +352,7 @@ export default function ResourceManagement({
           resourceId={scheduleModal.resourceId}
           resourceName={scheduleModal.resourceName}
           schedules={teachingSchedules.filter((s) => s.resource_id === scheduleModal.resourceId)}
+          dosenList={dosenList}
           onClose={() => setScheduleModal({ isOpen: false, resourceId: "", resourceName: "" })}
         />
       )}
