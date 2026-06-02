@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useActionState } from "react";
+import { useState, useActionState, useEffect } from "react";
 import {
   updateSettings,
   createActivityTemplate,
@@ -191,6 +191,15 @@ export default function SettingsForm({
   const [maintState, maintAction] = useActionState(toggleMaintenance, null);
   const [templates, setTemplates] = useState<ActivityTemplate[]>(initialTemplates);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Auto-close modal & tambah ke daftar lokal setelah create sukses
+  useEffect(() => {
+    if (createState?.success && isAddModalOpen) {
+      setIsAddModalOpen(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createState]);
 
   const handleDelete = async (id: string) => {
     if (!confirm("Hapus template kegiatan ini?")) return;
@@ -274,64 +283,26 @@ export default function SettingsForm({
 
       {/* ===================== TEMPLATE KEGIATAN ===================== */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-100">
-          <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            🏷️ Manajemen Template Kegiatan
-          </h3>
-          <p className="text-xs text-slate-500 mt-1">
-            Tambah, edit, atau hapus template kegiatan yang tersedia saat peminjaman.
-          </p>
+        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              🏷️ Manajemen Template Kegiatan
+            </h3>
+            <p className="text-xs text-slate-500 mt-1">
+              Tambah, edit, atau hapus template kegiatan yang tersedia saat peminjaman.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 bg-indigo-600 text-white font-bold py-2 px-4 rounded-xl hover:bg-indigo-700 transition text-sm shadow-sm shrink-0"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" />
+            </svg>
+            Tambah Template
+          </button>
         </div>
-
-        {/* Form Tambah Template Baru */}
-        <form action={createAction} className="p-6 bg-slate-50 border-b border-slate-100">
-          {createState?.success && (
-            <div className="mb-4 bg-emerald-50 border-l-4 border-emerald-500 p-3 rounded-r-lg text-sm font-bold text-emerald-800">
-              ✅ {createState.success}
-            </div>
-          )}
-          {createState?.error && (
-            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 rounded-r-lg text-sm font-bold text-red-800">
-              ⚠️ {createState.error}
-            </div>
-          )}
-          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Tambah Template Baru</p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-            <div className="md:col-span-1">
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Nama Kegiatan</label>
-              <input type="text" name="name" required placeholder="cth: Seminar Prodi"
-                className="w-full rounded-lg border-slate-200 bg-white p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Bobot / Prioritas</label>
-              <select name="weight" required
-                className="w-full rounded-lg border-slate-200 bg-white p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
-                <option value="">-- Pilih Prioritas --</option>
-                <option value="10">Rendah</option>
-                <option value="30">Sedang</option>
-                <option value="60">Tinggi</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Role yang Diizinkan</label>
-              <div className="flex flex-wrap gap-3">
-                {ALL_ROLES.map((r) => (
-                  <label key={r} className="flex items-center gap-1.5 text-sm cursor-pointer">
-                    <input type="checkbox" name="allowed_roles" value={r}
-                      className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                    <span className="capitalize font-medium text-slate-700">{r}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="mt-4">
-            <button type="submit" disabled={isCreating}
-              className="bg-indigo-600 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-indigo-700 transition text-sm disabled:opacity-50">
-              {isCreating ? "Menambahkan..." : "+ Tambah Template"}
-            </button>
-          </div>
-        </form>
 
         {/* Tabel Template Existing */}
         <div className="overflow-x-auto">
@@ -396,6 +367,112 @@ export default function SettingsForm({
           </button>
         </div>
       </form>
+
+      {/* ===================== MODAL TAMBAH TEMPLATE ===================== */}
+      {isAddModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setIsAddModalOpen(false); }}
+        >
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">Tambah Template Kegiatan</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Isi detail kegiatan baru yang akan tersedia saat peminjaman.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-5 h-5">
+                  <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Form */}
+            <form action={createAction} className="p-6 space-y-5">
+              {createState?.error && (
+                <div className="bg-red-50 border-l-4 border-red-500 p-3 rounded-r-lg text-sm font-bold text-red-800">
+                  ⚠️ {createState.error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
+                  Nama Kegiatan <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text" name="name" required
+                  placeholder="cth: Seminar Prodi"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-400 outline-none transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">
+                  Bobot / Prioritas <span className="text-red-500">*</span>
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { val: "10", label: "Rendah", style: "border-slate-200 text-slate-600 peer-checked:bg-slate-50 peer-checked:border-slate-400 peer-checked:ring-slate-300" },
+                    { val: "30", label: "Sedang", style: "border-amber-200 text-amber-700 peer-checked:bg-amber-50 peer-checked:border-amber-400 peer-checked:ring-amber-200" },
+                    { val: "60", label: "Tinggi", style: "border-red-200 text-red-600 peer-checked:bg-red-50 peer-checked:border-red-400 peer-checked:ring-red-200" },
+                  ].map(({ val, label, style }) => (
+                    <label key={val} className="cursor-pointer">
+                      <input type="radio" name="weight" value={val} required className="sr-only peer" />
+                      <div className={`text-center py-2.5 rounded-xl border-2 font-bold text-sm transition peer-checked:ring-2 ${style}`}>
+                        {label}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-2">
+                  Role yang Diizinkan <span className="text-red-500">*</span>
+                </label>
+                <div className="flex flex-wrap gap-3">
+                  {ALL_ROLES.map((r) => (
+                    <label key={r} className="flex items-center gap-2 text-sm cursor-pointer group">
+                      <input
+                        type="checkbox" name="allowed_roles" value={r}
+                        className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="capitalize font-medium text-slate-700 group-hover:text-indigo-600 transition">{r}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer Tombol */}
+              <div className="flex gap-3 pt-2 border-t border-slate-100">
+                <button
+                  type="submit"
+                  disabled={isCreating}
+                  className="flex-1 bg-indigo-600 text-white font-bold py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {isCreating ? (
+                    <><span className="animate-spin">⏳</span> Menyimpan...</>
+                  ) : (
+                    <><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg> Tambah Template</>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="px-5 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition"
+                >
+                  Batal
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
