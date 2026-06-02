@@ -204,7 +204,15 @@ export default function BookingForm({
 
   const selectedActivity = activityTemplates.find((t) => t.id === selectedActivityId);
   const activityWeight = selectedActivity?.weight || 0;
-  const totalScore = activityWeight; // Hanya bobot kegiatan, tidak ada bobot role
+  // Konversi bobot angka ke label teks
+  const priorityLevel = activityWeight >= 60 ? "tinggi" : activityWeight >= 30 ? "sedang" : "rendah";
+  const PRIORITY_LABEL: Record<string, string> = { tinggi: "Tinggi", sedang: "Sedang", rendah: "Rendah" };
+  const PRIORITY_STYLE: Record<string, string> = {
+    tinggi: "text-red-600 bg-red-50 border-red-200",
+    sedang: "text-amber-600 bg-amber-50 border-amber-200",
+    rendah: "text-slate-500 bg-slate-50 border-slate-200",
+  };
+  const totalScore = activityWeight; // tetap dipakai untuk logika internal
 
   // Apakah template ini perlu judul kustom?
   // Hanya "mengajar" dan "kustom" yang perlu input judul manual
@@ -491,10 +499,13 @@ export default function BookingForm({
                 </div>
               )}
               {selectedActivity && (
-                <p className="text-[10px] text-slate-500 mt-1 ml-1">
-                  Bobot kegiatan ini: <strong className="text-indigo-600">{selectedActivity.weight} PTS</strong>
-                  {selectedActivity.weight >= 30 && (
-                    <span className="ml-2 text-amber-600 font-bold">⚠️ Wajib H-1</span>
+                <p className="text-[10px] text-slate-500 mt-1 ml-1 flex items-center gap-1.5">
+                  Prioritas kegiatan ini:
+                  <span className={`font-bold px-1.5 py-0.5 rounded border text-[9px] uppercase ${PRIORITY_STYLE[priorityLevel]}`}>
+                    {PRIORITY_LABEL[priorityLevel]}
+                  </span>
+                  {activityWeight >= 30 && (
+                    <span className="text-amber-600 font-bold">⚠️ Wajib H-1</span>
                   )}
                 </p>
               )}
@@ -658,18 +669,22 @@ export default function BookingForm({
                 <div className="mt-3 bg-slate-800 text-white rounded-xl p-4 shadow-inner animate-in fade-in slide-in-from-top-2">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-700 pb-3 mb-3">
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Power Skor Anda</p>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Prioritas Booking Anda</p>
                       <div className="text-sm font-medium text-slate-300 mt-1">
                         Kegiatan: {selectedActivity?.name || "-"}
                       </div>
                     </div>
-                    <div className="text-3xl font-black text-emerald-400 tracking-tight">
-                      {totalScore} <span className="text-lg text-slate-500">PTS</span>
+                    <div className={`text-lg font-black px-4 py-1.5 rounded-full border-2 ${
+                      priorityLevel === "tinggi" ? "text-red-400 border-red-500/50 bg-red-500/10" :
+                      priorityLevel === "sedang" ? "text-amber-400 border-amber-500/50 bg-amber-500/10" :
+                      "text-slate-300 border-slate-500/50 bg-slate-500/10"
+                    }`}>
+                      {PRIORITY_LABEL[priorityLevel]}
                     </div>
                   </div>
                   <p className="text-[10px] text-slate-400 leading-relaxed font-medium">
                     <span className="text-amber-400 font-bold">💡 Info:</span>{" "}
-                    Skor lebih tinggi dapat menggeser booking skor rendah (sebelum Freeze Time 🔒).
+                    Prioritas lebih tinggi dapat menggeser booking prioritas rendah (sebelum Freeze Time 🔒).
                   </p>
                 </div>
               )}

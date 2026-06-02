@@ -17,6 +17,16 @@ type ActivityTemplate = {
 
 const ALL_ROLES = ["mahasiswa", "dosen", "admin"];
 
+// Mapping bobot angka ↔ label teks
+const WEIGHT_TO_LEVEL: Record<number, string> = { 10: "rendah", 30: "sedang", 60: "tinggi" };
+const LEVEL_TO_WEIGHT: Record<string, number> = { rendah: 10, sedang: 30, tinggi: 60 };
+const LEVEL_STYLE: Record<string, string> = {
+  rendah: "bg-slate-50 text-slate-600 border-slate-200",
+  sedang: "bg-amber-50 text-amber-700 border-amber-200",
+  tinggi: "bg-red-50 text-red-700 border-red-200",
+};
+const LEVEL_LABEL: Record<string, string> = { rendah: "Rendah", sedang: "Sedang", tinggi: "Tinggi" };
+
 export default function SettingsForm({
   initialSettings,
   activityTemplates: initialTemplates,
@@ -27,7 +37,7 @@ export default function SettingsForm({
   const [state, formAction, isPending] = useActionState(updateSettings, null);
   const [createState, createAction, isCreating] = useActionState(createActivityTemplate, null);
 
-  const [editingWeights, setEditingWeights] = useState<Record<string, number>>({});
+  const [editingWeights, setEditingWeights] = useState<Record<string, string>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<ActivityTemplate[]>(initialTemplates);
@@ -46,10 +56,13 @@ export default function SettingsForm({
   };
 
   const handleWeightSave = async (id: string) => {
-    const newWeight = editingWeights[id];
-    if (newWeight === undefined) return;
+    const levelStr = editingWeights[id];
+    if (!levelStr) return;
+    const newWeight = LEVEL_TO_WEIGHT[levelStr];
     setSavingId(id);
     await updateActivityWeight(id, newWeight);
+    // Update local state
+    setTemplates((prev) => prev.map((t) => t.id === id ? { ...t, weight: newWeight } : t));
     setSavingId(null);
     setEditingWeights((prev) => {
       const next = { ...prev };
@@ -198,9 +211,14 @@ export default function SettingsForm({
                 className="w-full rounded-lg border-slate-200 bg-white p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
             </div>
             <div>
-              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Bobot</label>
-              <input type="number" name="weight" required min={1} max={100} placeholder="cth: 25"
-                className="w-full rounded-lg border-slate-200 bg-white p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
+              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Bobot / Prioritas</label>
+              <select name="weight" required
+                className="w-full rounded-lg border-slate-200 bg-white p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                <option value="">-- Pilih Prioritas --</option>
+                <option value="10">Rendah</option>
+                <option value="30">Sedang</option>
+                <option value="60">Tinggi</option>
+              </select>
             </div>
             <div>
               <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1.5">Role yang Diizinkan</label>
@@ -243,8 +261,6 @@ export default function SettingsForm({
                 </tr>
               )}
               {templates.map((t) => {
-                const isEditing = editingWeights[t.id] !== undefined;
-                const currentVal = editingWeights[t.id] ?? t.weight;
                 return (
                   <tr key={t.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-800">{t.name}</td>
@@ -259,16 +275,30 @@ export default function SettingsForm({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-center gap-1.5">
-                        <input
-                          type="number" min={1} max={100} value={currentVal}
-                          onChange={(e) => setEditingWeights((prev) => ({ ...prev, [t.id]: parseInt(e.target.value) || 0 }))}
-                          className="w-16 text-center text-sm font-bold rounded-lg border border-slate-200 p-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
-                        />
-                        {isEditing && (
-                          <button type="button" onClick={() => handleWeightSave(t.id)}
-                            disabled={savingId === t.id}
-                            className="text-[10px] font-bold bg-indigo-600 text-white px-2 py-1.5 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50">
-                            {savingId === t.id ? "..." : "Simpan"}
+                        {editingWeights[t.id] !== undefined ? (
+                          <>
+                            <select
+                              value={editingWeights[t.id]}
+                              onChange={(e) => setEditingWeights((prev) => ({ ...prev, [t.id]: e.target.value }))}
+                              className="text-sm rounded-lg border border-slate-200 p-1.5 focus:ring-2 focus:ring-indigo-500 outline-none"
+                            >
+                              <option value="rendah">Rendah</option>
+                              <option value="sedang">Sedang</option>
+                              <option value="tinggi">Tinggi</option>
+                            </select>
+                            <button type="button" onClick={() => handleWeightSave(t.id)}
+                              disabled={savingId === t.id}
+                              className="text-[10px] font-bold bg-indigo-600 text-white px-2 py-1.5 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50">
+                              {savingId === t.id ? "..." : "Simpan"}
+                            </button>
+                            <button type="button" onClick={() => setEditingWeights((prev) => { const n = { ...prev }; delete n[t.id]; return n; })}
+                              className="text-[10px] text-slate-400 hover:text-slate-600 px-1.5 py-1.5 rounded-lg">✕</button>
+                          </>
+                        ) : (
+                          <button type="button"
+                            onClick={() => setEditingWeights((prev) => ({ ...prev, [t.id]: WEIGHT_TO_LEVEL[t.weight] || "sedang" }))}
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition hover:opacity-80 ${LEVEL_STYLE[WEIGHT_TO_LEVEL[t.weight] || "sedang"]}`}>
+                            {LEVEL_LABEL[WEIGHT_TO_LEVEL[t.weight] || "sedang"] || "Sedang"}
                           </button>
                         )}
                       </div>
