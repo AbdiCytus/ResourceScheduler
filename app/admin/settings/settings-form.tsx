@@ -6,6 +6,7 @@ import {
   createActivityTemplate,
   deleteActivityTemplate,
   updateActivityTemplate,
+  toggleMaintenance,
 } from "./actions";
 
 type ActivityTemplate = {
@@ -187,6 +188,7 @@ export default function SettingsForm({
 }) {
   const [state, formAction, isPending] = useActionState(updateSettings, null);
   const [createState, createAction, isCreating] = useActionState(createActivityTemplate, null);
+  const [maintState, maintAction] = useActionState(toggleMaintenance, null);
   const [templates, setTemplates] = useState<ActivityTemplate[]>(initialTemplates);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -258,25 +260,6 @@ export default function SettingsForm({
             </div>
             <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 text-xs text-amber-700 font-medium">
               ⚠️ Peminjaman di luar jam ini akan <strong>ditolak otomatis</strong> oleh sistem.
-            </div>
-          </div>
-
-          {/* --- MAINTENANCE --- */}
-          <div>
-            <h3 className="text-lg font-bold text-red-600 mb-4 border-b border-red-100 pb-2">
-              Zona Berbahaya
-            </h3>
-            <div className="bg-red-50 border border-red-100 p-5 rounded-2xl flex items-center justify-between">
-              <div>
-                <h4 className="font-bold text-red-800 text-sm">Mode Maintenance</h4>
-                <p className="text-xs text-red-600 mt-1">Jika diaktifkan, user tidak bisa melakukan booking.</p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" name="is_maintenance"
-                  defaultChecked={initialSettings["is_maintenance"] === "true"}
-                  value="true" className="sr-only peer" />
-                <div className="w-11 h-6 bg-red-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-              </label>
             </div>
           </div>
         </div>
@@ -381,6 +364,38 @@ export default function SettingsForm({
           </table>
         </div>
       </div>
+
+      {/* ===================== ZONA BERBAHAYA ===================== */}
+      <form action={maintAction} className="bg-white rounded-2xl border border-red-200 shadow-sm overflow-hidden">
+        <div className="p-6 md:p-8">
+          <h3 className="text-lg font-bold text-red-600 mb-4 border-b border-red-100 pb-2">
+            ⚠️ Zona Berbahaya
+          </h3>
+          {maintState?.error && (
+            <div className="mb-4 bg-red-50 border-l-4 border-red-500 p-3 rounded-r-lg text-sm font-bold text-red-800">
+              {maintState.error}
+            </div>
+          )}
+          <div className="bg-red-50 border border-red-100 p-5 rounded-2xl flex items-center justify-between">
+            <div>
+              <h4 className="font-bold text-red-800 text-sm">Mode Maintenance</h4>
+              <p className="text-xs text-red-600 mt-1">Jika diaktifkan, user tidak bisa melakukan booking.</p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" name="is_maintenance"
+                defaultChecked={initialSettings["is_maintenance"] === "true"}
+                value="true" className="sr-only peer" />
+              <div className="w-11 h-6 bg-red-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+            </label>
+          </div>
+        </div>
+        <div className="p-6 bg-red-50/50 border-t border-red-100 flex justify-end">
+          <button type="submit"
+            className="bg-red-600 text-white font-bold py-2.5 px-6 rounded-xl hover:bg-red-700 transition shadow-sm text-sm">
+            Simpan Mode Maintenance
+          </button>
+        </div>
+      </form>
     </div>
   );
 }

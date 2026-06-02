@@ -16,6 +16,23 @@ export async function getSystemSettings() {
   return settings;
 }
 
+// --- TOGGLE MAINTENANCE MODE ---
+export async function toggleMaintenance(prevState: any, formData: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Tidak terautentikasi." };
+
+  const val = formData.get("is_maintenance") === "true" ? "true" : "false";
+  const { error } = await supabase
+    .from("system_settings")
+    .upsert({ key: "is_maintenance", value: val }, { onConflict: "key" });
+
+  if (error) return { error: error.message };
+  revalidatePath("/admin/settings");
+  revalidatePath("/portal");
+  return { success: true };
+}
+
 // --- Fungsi untuk menyimpan data settings ---
 export async function updateSettings(prevState: any, formData: FormData) {
   const supabase = await createClient();
