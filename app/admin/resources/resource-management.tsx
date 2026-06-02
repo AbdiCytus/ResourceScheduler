@@ -8,12 +8,13 @@ const DAY_NAMES: Record<number, string> = {
   1: "Sen", 2: "Sel", 3: "Rab", 4: "Kam", 5: "Jum",
 };
 
-// Komponen toggle cepat per baris jadwal
-function QuickToggleRow({ schedule }: { schedule: TeachingSchedule }) {
+// Badge waktu per jadwal dengan toggle is_offline
+function ScheduleBadge({ schedule }: { schedule: TeachingSchedule }) {
   const [isOffline, setIsOffline] = useState(schedule.is_offline);
   const [loading, setLoading] = useState(false);
 
-  const handleToggle = async () => {
+  const handleToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     setLoading(true);
     const newVal = !isOffline;
     const res = await toggleTeachingScheduleStatus(schedule.id, newVal);
@@ -22,35 +23,88 @@ function QuickToggleRow({ schedule }: { schedule: TeachingSchedule }) {
   };
 
   return (
-    <div className="flex items-center gap-2 group">
+    <div
+      title={`${schedule.matakuliah} – ${schedule.kelas}\n${isOffline ? "Kelas Aktif" : "Dosen tidak hadir (Kosong)"}`}
+      className={`group flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-mono font-bold cursor-default transition ${
+        isOffline
+          ? "bg-rose-50 border-rose-200 text-rose-700"
+          : "bg-emerald-50 border-emerald-200 text-emerald-700"
+      }`}
+    >
+      <span>{schedule.start_time.slice(0, 5)}–{schedule.end_time.slice(0, 5)}</span>
       <button
         onClick={handleToggle}
         disabled={loading}
-        title={isOffline ? "Klik untuk tandai KOSONG (dosen tidak masuk)" : "Klik untuk tandai AKTIF (kelas berlangsung)"}
-        className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-          isOffline ? "bg-rose-500" : "bg-slate-300"
-        } disabled:opacity-50`}
+        title={isOffline ? "Tandai Kosong" : "Tandai Aktif"}
+        className={`w-3.5 h-3.5 rounded-full border transition opacity-60 group-hover:opacity-100 ${
+          isOffline ? "bg-rose-400 border-rose-500" : "bg-emerald-400 border-emerald-500"
+        } disabled:opacity-30 flex items-center justify-center`}
       >
-        <span className={`inline-block h-3 w-3 transform rounded-full bg-white shadow transition duration-200 ease-in-out ${
-          isOffline ? "translate-x-4" : "translate-x-0"
-        }`} />
+        <span className="sr-only">toggle</span>
       </button>
-      <div className="min-w-0">
-        <p className="text-[10px] font-bold text-slate-700 truncate">
-          {DAY_NAMES[schedule.day_of_week]} · {schedule.start_time.slice(0, 5)}–{schedule.end_time.slice(0, 5)}
-        </p>
-        <p className="text-[9px] text-slate-400 truncate">{schedule.matakuliah} – {schedule.kelas}</p>
-      </div>
-      <span className={`ml-auto shrink-0 text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${
-        isOffline
-          ? "bg-rose-50 text-rose-600 border-rose-200"
-          : "bg-emerald-50 text-emerald-600 border-emerald-200"
-      }`}>
-        {isOffline ? "Aktif" : "Kosong"}
-      </span>
     </div>
   );
 }
+
+// Kolom jadwal: grouped by day, compact
+function ScheduleColumn({
+  schedules,
+  onManage,
+}: {
+  schedules: TeachingSchedule[];
+  onManage: () => void;
+}) {
+  if (schedules.length === 0) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-slate-400 italic">Belum ada jadwal</span>
+        <button onClick={onManage} className="text-[10px] font-bold text-indigo-500 hover:text-indigo-700 px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-50 transition">
+          + Tambah
+        </button>
+      </div>
+    );
+  }
+
+  const grouped = [1, 2, 3, 4, 5].reduce<Record<number, TeachingSchedule[]>>((acc, d) => {
+    const day = schedules.filter((s) => s.day_of_week === d);
+    if (day.length > 0) acc[d] = day;
+    return acc;
+  }, {});
+
+  const totalActive = schedules.filter((s) => s.is_offline).length;
+  const totalEmpty = schedules.filter((s) => !s.is_offline).length;
+
+  return (
+    <div className="space-y-1.5">
+      {/* Summary badges */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {totalActive > 0 && (
+          <span className="text-[9px] font-bold bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.5 rounded-full">
+            {totalActive} Aktif
+          </span>
+        )}
+        {totalEmpty > 0 && (
+          <span className="text-[9px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200 px-1.5 py-0.5 rounded-full">
+            {totalEmpty} Kosong
+          </span>
+        )}
+        <button onClick={onManage} className="text-[9px] font-bold text-indigo-500 hover:text-indigo-700 ml-auto transition">
+          Kelola →
+        </button>
+      </div>
+      {/* Per day groups */}
+      {Object.entries(grouped).map(([dayStr, daySchedules]) => (
+        <div key={dayStr} className="flex items-start gap-1.5">
+          <span className="text-[9px] font-bold text-slate-400 w-6 pt-1 shrink-0">{DAY_NAMES[Number(dayStr)]}</span>
+          <div className="flex flex-wrap gap-1">
+            {daySchedules.map((s) => <ScheduleBadge key={s.id} schedule={s} />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 type Resource = {
   id: string;
@@ -205,27 +259,10 @@ export default function ResourceManagement({
                     </div>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="space-y-1.5 min-w-[260px]">
-                      {roomSchedules.length === 0 ? (
-                        <span className="text-xs text-slate-400 italic">Belum ada jadwal</span>
-                      ) : (
-                        roomSchedules.slice(0, 3).map((s) => (
-                          <QuickToggleRow key={s.id} schedule={s} />
-                        ))
-                      )}
-                      {roomSchedules.length > 3 && (
-                        <span className="text-[10px] text-slate-400">+{roomSchedules.length - 3} lainnya</span>
-                      )}
-                      <button
-                        onClick={() => setScheduleModal({ isOpen: true, resourceId: res.id, resourceName: res.name })}
-                        className="flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-700 mt-1 transition"
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clipRule="evenodd" />
-                        </svg>
-                        Kelola Semua Jadwal
-                      </button>
-                    </div>
+                    <ScheduleColumn
+                      schedules={roomSchedules}
+                      onManage={() => setScheduleModal({ isOpen: true, resourceId: res.id, resourceName: res.name })}
+                    />
                   </td>
                   <td className="px-6 py-4 text-right flex justify-end gap-1">
                     <button onClick={() => openEditForm(res)} disabled={isPendingDelete}

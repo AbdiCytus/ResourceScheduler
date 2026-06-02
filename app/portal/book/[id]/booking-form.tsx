@@ -63,10 +63,13 @@ function calculateFreeSlots(
   schedulesOnDate: any[],
   teachingOnDay: any[],
   capacity: number,
+  buildingOpenStr: string = "08:00",
+  buildingCloseStr: string = "18:00",
 ) {
-  // Rentang hari: 07:00 - 22:00 (tidak ada batas jam operasional)
-  const startOfDay = 7 * 60;
-  const endOfDay = 22 * 60;
+  const [openH, openM] = buildingOpenStr.split(":").map(Number);
+  const [closeH, closeM] = buildingCloseStr.split(":").map(Number);
+  const startOfDay = openH * 60 + openM;
+  const endOfDay = closeH * 60 + closeM;
 
   const events: { time: number; diff: number }[] = [];
 
@@ -247,8 +250,8 @@ export default function BookingForm({
 
   const freeSlots = useMemo(() => {
     if (!selectedDate || isWeekend) return [];
-    return calculateFreeSlots(displayedSchedules, teachingOnDayActive, capacity);
-  }, [selectedDate, displayedSchedules, teachingOnDayActive, capacity, isWeekend]);
+    return calculateFreeSlots(displayedSchedules, teachingOnDayActive, capacity, buildingOpen, buildingClose);
+  }, [selectedDate, displayedSchedules, teachingOnDayActive, capacity, isWeekend, buildingOpen, buildingClose]);
 
   // Reset slot saat tanggal/mode berubah
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -286,11 +289,27 @@ export default function BookingForm({
               </h3>
               {freeSlots.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
-                  {freeSlots.map((slot, idx) => (
-                    <span key={idx} className="bg-white text-emerald-700 text-xs font-mono font-bold px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm">
-                      {slot}
-                    </span>
-                  ))}
+                  {freeSlots.map((slot, idx) => {
+                    const [s, e] = slot.split(" - ");
+                    const isSelected = selectedSlot?.start === s && selectedSlot?.end === e;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSlot({ start: s, end: e });
+                          setTimeMode("simple");
+                        }}
+                        className={`text-xs font-mono font-bold px-3 py-1.5 rounded-lg border shadow-sm transition ${
+                          isSelected
+                            ? "bg-emerald-600 text-white border-emerald-600"
+                            : "bg-white text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                        }`}
+                      >
+                        {slot}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <p className="text-xs text-emerald-600 italic">Tidak ada slot kosong tersedia.</p>
@@ -578,31 +597,27 @@ export default function BookingForm({
                           📌 H-1+: Jadwal mengajar akan ditimpa jika skor Anda cukup.
                         </p>
                       )}
-                      {templateSlots.map((t) => {
-                        const s = t.start_time.slice(0, 5);
-                        const e = t.end_time.slice(0, 5);
-                        const isActive = selectedSlot?.start === s && selectedSlot?.end === e;
-                        return (
-                          <button key={t.id} type="button"
-                            onClick={() => setSelectedSlot({ start: s, end: e })}
-                            className={`flex items-center justify-between w-full px-4 py-3 rounded-xl border text-sm transition ${
-                              isActive
-                                ? "bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200"
-                                : !t.is_offline
-                                ? "bg-emerald-50 border-emerald-200 text-emerald-900 hover:bg-emerald-100"
-                                : "bg-slate-50 border-slate-200 text-slate-800 hover:bg-indigo-50 hover:border-indigo-200"
-                            }`}>
-                            <div className="text-left">
-                              <p className="font-bold text-sm">{t.matakuliah} — {t.kelas}</p>
-                              {t.dosen_pengampu && <p className={`text-[10px] mt-0.5 ${isActive ? "text-indigo-200" : "text-slate-400"}`}>{t.dosen_pengampu}</p>}
-                            </div>
-                            <div className="text-right shrink-0 ml-3">
-                              <p className="font-mono font-bold text-sm">{s}–{e}</p>
-                              {!t.is_offline && <span className={`text-[9px] font-bold ${isActive ? "text-emerald-300" : "text-emerald-600"}`}>● Kosong</span>}
-                            </div>
-                          </button>
-                        );
-                      })}
+                      <div className="flex flex-wrap gap-2">
+                        {templateSlots.map((t) => {
+                          const s = t.start_time.slice(0, 5);
+                          const e = t.end_time.slice(0, 5);
+                          const isActive = selectedSlot?.start === s && selectedSlot?.end === e;
+                          return (
+                            <button key={t.id} type="button"
+                              onClick={() => setSelectedSlot({ start: s, end: e })}
+                              className={`text-xs font-mono font-bold px-3 py-1.5 rounded-lg border shadow-sm transition ${
+                                isActive
+                                  ? "bg-indigo-600 text-white border-indigo-600"
+                                  : !t.is_offline
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                                  : "bg-white text-slate-700 border-slate-200 hover:bg-indigo-50 hover:border-indigo-300"
+                              }`}>
+                              {s} – {e}
+                              {!t.is_offline && <span className={`ml-1 text-[9px] ${isActive ? "text-emerald-300" : "text-emerald-500"}`}>●</span>}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   )}
                   {selectedSlot && (
