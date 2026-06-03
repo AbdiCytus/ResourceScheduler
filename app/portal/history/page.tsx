@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { CancelBookingButton } from "./cancel-button";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,12 @@ const STATUS_LABEL: Record<string, string> = {
   pending: "Menunggu",
   rejected: "Ditolak",
   cancelled: "Dibatalkan",
+};
+
+const WEIGHT_TO_PRIORITY: Record<number, { label: string; cls: string }> = {
+  10: { label: "Prioritas Rendah", cls: "bg-slate-100 text-slate-500 border-slate-200" },
+  30: { label: "Prioritas Sedang", cls: "bg-amber-50 text-amber-700 border-amber-200" },
+  60: { label: "Prioritas Tinggi", cls: "bg-red-50 text-red-600 border-red-200" },
 };
 
 export default async function HistoryPage() {
@@ -38,6 +45,8 @@ export default async function HistoryPage() {
   const preempted = schedules?.filter(
     (s) => s.status === "cancelled" && s.description?.includes("Digeser")
   ).length || 0;
+
+  const now = new Date();
 
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8">
@@ -84,12 +93,19 @@ export default async function HistoryPage() {
               const statusLabel = STATUS_LABEL[item.status] || item.status;
               const isPreempted = item.status === "cancelled" && item.description?.includes("Digeser");
               const activityName = item.activity_templates?.name;
-              const activityWeight = item.activity_templates?.weight;
+              const activityWeight = item.activity_templates?.weight as number | undefined;
+              const priority = activityWeight !== undefined ? WEIGHT_TO_PRIORITY[activityWeight] : null;
+
+              // Bisa dibatalkan jika belum mulai, status bukan cancelled/rejected
+              const canCancel =
+                item.status !== "cancelled" &&
+                item.status !== "rejected" &&
+                startDate > now;
 
               return (
                 <div
                   key={item.id}
-                  className={`bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md transition flex flex-col md:flex-row gap-5 items-start md:items-center ${
+                  className={`bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md transition flex flex-col md:flex-row gap-5 items-start ${
                     isPreempted ? "border-rose-200 bg-rose-50/30" : "border-slate-200"
                   }`}
                 >
@@ -111,15 +127,15 @@ export default async function HistoryPage() {
                       🏢 {item.resources?.name || "—"}
                     </p>
 
-                    {/* Tag Kegiatan */}
+                    {/* Tag Kegiatan & Prioritas */}
                     {activityName && (
                       <div className="flex flex-wrap gap-2 mb-2">
                         <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 rounded-full font-bold">
                           🏷️ {activityName}
                         </span>
-                        {activityWeight !== undefined && (
-                          <span className="text-[10px] bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-bold">
-                            Bobot {activityWeight} PTS
+                        {priority && (
+                          <span className={`text-[10px] border px-2.5 py-1 rounded-full font-bold ${priority.cls}`}>
+                            {priority.label}
                           </span>
                         )}
                       </div>
@@ -137,6 +153,9 @@ export default async function HistoryPage() {
                         <span>{item.description}</span>
                       </div>
                     )}
+
+                    {/* Tombol Batal */}
+                    {canCancel && <CancelBookingButton scheduleId={item.id} />}
                   </div>
 
                   {/* Tanggal Pengajuan */}

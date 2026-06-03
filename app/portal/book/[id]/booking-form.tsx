@@ -290,8 +290,35 @@ export default function BookingForm({
             </div>
           )}
 
+          {/* Jadwal Kuliah Hari Dipilih — tampil lebih dulu */}
+          {selectedDate && teachingOnDay.length > 0 && (
+            <div className="mx-6 mt-6 mb-2 shrink-0">
+              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
+                🎓 Jadwal Kuliah Tetap ({DAY_OF_WEEK[selectedDayOfWeek ?? 0]})
+              </p>
+              <div className="grid grid-cols-2 gap-1">
+                {teachingOnDay.map((t) => (
+                  <div key={t.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+                    <div className="min-w-0 mr-1">
+                      <p className="text-[10px] font-bold text-amber-800 truncate">{t.matakuliah} – {t.kelas}</p>
+                      <p className="text-[9px] text-amber-600 truncate">{t.dosen_pengampu}</p>
+                    </div>
+                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${
+                      t.is_offline
+                        ? "text-amber-700 bg-white border-amber-200"
+                        : "text-emerald-700 bg-emerald-50 border-emerald-200"
+                    }`}>
+                      {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Slot Kosong Tersedia — setelah jadwal kuliah */}
           {selectedDate && !isWeekend && (
-            <div className="mx-6 mt-6 mb-2 p-4 bg-emerald-50 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-2 shrink-0">
+            <div className="mx-6 mt-3 mb-2 p-4 bg-emerald-50 rounded-xl border border-emerald-100 animate-in fade-in slide-in-from-top-2 shrink-0">
               <h3 className="text-sm font-bold text-emerald-800 flex items-center gap-2 mb-3">
                 ✅ Slot Kosong Tersedia
               </h3>
@@ -325,34 +352,6 @@ export default function BookingForm({
             </div>
           )}
 
-
-
-          {/* Jadwal Kuliah Hari Dipilih */}
-          {selectedDate && teachingOnDay.length > 0 && (
-            <div className="mx-6 mt-3 mb-2 shrink-0">
-              <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wider mb-2">
-                🎓 Jadwal Kuliah Tetap ({DAY_OF_WEEK[selectedDayOfWeek ?? 0]})
-              </p>
-              <div className="grid grid-cols-2 gap-1">
-                {teachingOnDay.map((t) => (
-                  <div key={t.id} className="flex items-center justify-between bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
-                    <div className="min-w-0 mr-1">
-                      <p className="text-[10px] font-bold text-amber-800 truncate">{t.matakuliah} – {t.kelas}</p>
-                      <p className="text-[9px] text-amber-600 truncate">{t.dosen_pengampu}</p>
-                    </div>
-                    <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${
-                      t.is_offline
-                        ? "text-amber-700 bg-white border-amber-200"
-                        : "text-emerald-700 bg-emerald-50 border-emerald-200"
-                    }`}>
-                      {t.start_time.slice(0, 5)}–{t.end_time.slice(0, 5)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
           <div className="p-6 pt-4 flex flex-col flex-1 min-h-0">
             <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 pl-1 shrink-0">
               Daftar Terisi (Booked)
@@ -382,7 +381,6 @@ export default function BookingForm({
                             <div className="font-mono text-slate-500 text-[10px]">
                               {formatTime(sch.start_time)} – {formatTime(sch.end_time)}
                             </div>
-                            <div className="text-[10px] font-bold text-indigo-600 mt-1">{durationText}</div>
                           </td>
                           <td className="py-3 px-3 align-top">
                             <div className="font-bold text-slate-800 line-clamp-2 mb-1 flex items-center">
