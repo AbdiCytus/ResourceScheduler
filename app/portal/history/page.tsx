@@ -116,20 +116,30 @@ export default async function HistoryPage() {
 
                   {/* Info Utama */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <h3 className="text-base font-bold text-slate-900 truncate">{item.title}</h3>
+                    {/* Baris 1: Nama Ruangan + Status badge */}
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <h3 className="text-base font-bold text-slate-900 truncate">
+                        🏢 {item.resources?.name || "—"}
+                      </h3>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${statusClass}`}>
                         {statusLabel}
                       </span>
                     </div>
 
-                    <p className="text-sm text-slate-600 font-semibold mb-2">
-                      🏢 {item.resources?.name || "—"}
+                    {/* Baris 2: Nama Kegiatan (title) */}
+                    <p className="text-sm text-slate-500 font-medium mb-2">
+                      {item.title}
                     </p>
 
-                    {/* Tag Kegiatan & Prioritas */}
+                    {/* Baris 3: Jadwal & Waktu */}
+                    <div className="flex flex-wrap gap-4 text-xs text-slate-500 mb-2">
+                      <div className="flex items-center gap-1">📅 {dateStr}</div>
+                      <div className="flex items-center gap-1">⏰ {timeStr}</div>
+                    </div>
+
+                    {/* Baris 4: Tag Kegiatan & Prioritas */}
                     {activityName && (
-                      <div className="flex flex-wrap gap-2 mb-2">
+                      <div className="flex flex-wrap gap-2">
                         <span className="text-[10px] bg-indigo-50 text-indigo-700 border border-indigo-100 px-2.5 py-1 rounded-full font-bold">
                           🏷️ {activityName}
                         </span>
@@ -141,11 +151,6 @@ export default async function HistoryPage() {
                       </div>
                     )}
 
-                    <div className="flex flex-wrap gap-4 text-xs text-slate-500">
-                      <div className="flex items-center gap-1">📅 {dateStr}</div>
-                      <div className="flex items-center gap-1">⏰ {timeStr}</div>
-                    </div>
-
                     {/* Alert Preempted */}
                     {isPreempted && (
                       <div className="mt-3 bg-rose-50 border border-rose-100 text-rose-700 p-2.5 rounded-xl text-xs flex items-start gap-2">
@@ -153,19 +158,19 @@ export default async function HistoryPage() {
                         <span>{item.description}</span>
                       </div>
                     )}
-
-                    {/* Tombol Batal */}
-                    {canCancel && <CancelBookingButton scheduleId={item.id} />}
                   </div>
 
-                  {/* Tanggal Pengajuan */}
-                  <div className="text-right shrink-0 ml-auto">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">Diajukan</p>
-                    <p className="text-xs font-bold text-slate-600 mt-0.5">
-                      {new Date(item.created_at).toLocaleDateString("id-ID", {
-                        day: "numeric", month: "short", year: "numeric",
-                      })}
-                    </p>
+                  {/* Kolom Kanan: Tanggal Diajukan + Tombol Batal */}
+                  <div className="text-right shrink-0 ml-auto flex flex-col items-end gap-2">
+                    <div>
+                      <p className="text-[10px] text-slate-400 uppercase tracking-wider">Diajukan</p>
+                      <p className="text-xs font-bold text-slate-600 mt-0.5">
+                        {new Date(item.created_at).toLocaleDateString("id-ID", {
+                          day: "numeric", month: "short", year: "numeric",
+                        })}
+                      </p>
+                    </div>
+                    {canCancel && <CancelBookingButton scheduleId={item.id} />}
                   </div>
                 </div>
               );
