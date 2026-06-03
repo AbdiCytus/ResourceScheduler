@@ -72,27 +72,42 @@ export default async function UserPortal({
   const closureDates = (buildingClosures || []).map((c: any) => c.date);
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 md:p-8 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <CustomToast />
 
-      <div className="max-w-7xl mx-auto w-full mb-6">
-        <h1 className="text-3xl font-bold text-slate-900">Portal Peminjaman</h1>
-        <p className="text-slate-500 mt-1">
-          {isKajur
-            ? "Mode Pemantauan Kajur"
-            : "Pilih ruangan atau cek jadwal kegiatan."}
-        </p>
+      {/* INFO BAR — sticky di bawah navbar */}
+      <div className="sticky top-16 z-40 w-full border-b shadow-sm">
+        {settings["is_maintenance"] === "true" ? (
+          <div className="w-full px-6 py-2.5 text-xs font-bold bg-red-600 text-white flex items-center justify-center gap-2 tracking-wider animate-pulse">
+            ⚠️ SISTEM SEDANG MAINTENANCE — Peminjaman Ditutup Sementara
+          </div>
+        ) : (
+          <div className="w-full px-6 py-2.5 text-xs font-semibold bg-indigo-50 text-indigo-700 border-indigo-100 flex items-center gap-2">
+            📅 Peminjaman tersedia <strong>Senin – Jumat</strong>, di luar hari itu gedung tidak beroperasi.
+          </div>
+        )}
       </div>
 
-      <div className="max-w-7xl mx-auto w-full flex-1">
-        <PortalClient
-          resources={resources}
-          schedules={allSchedules || []}
-          teachingSchedules={allTeachingSchedules || []}
-          closureDates={closureDates}
-          isSupervisor={isKajur}
-          settings={settings}
-        />
+      <div className="p-6 md:p-8 flex flex-col flex-1">
+        <div className="max-w-7xl mx-auto w-full mb-6">
+          <h1 className="text-3xl font-bold text-slate-900">Portal Peminjaman</h1>
+          <p className="text-slate-500 mt-1">
+            {isKajur
+              ? "Mode Pemantauan Kajur"
+              : "Pilih ruangan atau cek jadwal kegiatan."}
+          </p>
+        </div>
+
+        <div className="max-w-7xl mx-auto w-full flex-1">
+          <PortalClient
+            resources={resources}
+            schedules={allSchedules || []}
+            teachingSchedules={allTeachingSchedules || []}
+            closureDates={closureDates}
+            isSupervisor={isKajur}
+            settings={settings}
+          />
+        </div>
       </div>
     </div>
   );

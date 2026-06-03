@@ -137,16 +137,6 @@ export default function PortalClient({
 
   return (
     <div className="space-y-6">
-      {/* BANNER MAINTENANCE / INFO HARI KERJA */}
-      {isMaintenance ? (
-        <div className="w-full px-5 py-3 mb-5 rounded-xl text-xs font-bold border bg-red-50 text-red-600 border-red-200 flex items-center justify-center tracking-wider animate-pulse text-center shadow-sm">
-          ⚠️ SISTEM SEDANG DILAKUKAN MAINTENANCE (Peminjaman Ditutup Sementara)
-        </div>
-      ) : (
-        <div className="w-full px-5 py-3 mb-5 rounded-xl text-xs font-bold border bg-indigo-50 text-indigo-700 border-indigo-100 flex items-center shadow-sm">
-          📅 Peminjaman tersedia <strong className="mx-1">Senin – Jumat</strong>
-        </div>
-      )}
       {/* TABS NAVIGATION */}
       <div className="bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 grid grid-cols-2 gap-1">
         <button
