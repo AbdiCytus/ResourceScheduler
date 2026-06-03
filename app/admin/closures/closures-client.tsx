@@ -2,6 +2,7 @@
 
 import { useState, useActionState } from "react";
 import { addBuildingClosure, deleteBuildingClosure } from "./actions";
+import ConfirmModal from "@/components/confirm-modal";
 
 type Closure = { id: string; date: string; reason: string | null; created_at: string };
 
@@ -9,9 +10,12 @@ export default function ClosuresClient({ initialClosures }: { initialClosures: C
   const [closures, setClosures] = useState<Closure[]>(initialClosures);
   const [state, formAction, isPending] = useActionState(addBuildingClosure, null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<{ id: string; date: string } | null>(null);
 
-  const handleDelete = async (id: string, date: string) => {
-    if (!confirm(`Hapus tanggal tutup ${date}?`)) return;
+  const handleDelete = async () => {
+    if (!confirmTarget) return;
+    const { id, date } = confirmTarget;
+    setConfirmTarget(null);
     setDeletingId(id);
     const res = await deleteBuildingClosure(id);
     setDeletingId(null);
@@ -31,6 +35,17 @@ export default function ClosuresClient({ initialClosures }: { initialClosures: C
 
   return (
     <div className="space-y-8">
+      {/* Modal Konfirmasi Hapus */}
+      <ConfirmModal
+        isOpen={!!confirmTarget}
+        title="Hapus Tanggal Tutup?"
+        message={confirmTarget ? `${formatDate(confirmTarget.date)} akan dihapus dari daftar hari tutup gedung.` : ""}
+        confirmLabel="Ya, Hapus"
+        confirmVariant="danger"
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmTarget(null)}
+      />
+
       {/* Header */}
       <div>
         <h1 className="text-3xl font-bold text-slate-900">Manajemen Hari Tutup Gedung</h1>
@@ -87,8 +102,11 @@ export default function ClosuresClient({ initialClosures }: { initialClosures: C
                 </div>
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] font-mono text-red-600 bg-red-50 border border-red-100 px-2 py-1 rounded-lg">{c.date}</span>
-                  <button onClick={() => handleDelete(c.id, c.date)} disabled={deletingId === c.id}
-                    className="text-red-500 hover:bg-red-50 hover:text-red-700 p-1.5 rounded-lg transition disabled:opacity-50">
+                  <button
+                    onClick={() => setConfirmTarget({ id: c.id, date: c.date })}
+                    disabled={deletingId === c.id}
+                    className="text-red-500 hover:bg-red-50 hover:text-red-700 p-1.5 rounded-lg transition disabled:opacity-50"
+                  >
                     {deletingId === c.id ? "..." : "🗑️"}
                   </button>
                 </div>

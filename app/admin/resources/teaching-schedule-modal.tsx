@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ConfirmModal from "@/components/confirm-modal";
 import {
   createTeachingSchedule,
   updateTeachingSchedule,
@@ -118,6 +119,7 @@ function ScheduleRow({
   const [editing, setEditing] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleSave = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -249,8 +251,17 @@ function ScheduleRow({
         </button>
 
         {/* Delete */}
+        <ConfirmModal
+          isOpen={showDeleteConfirm}
+          title="Hapus Jadwal Kuliah?"
+          message={`Jadwal ${s.matakuliah} – Kelas ${s.kelas} (${DAY_NAMES[s.day_of_week]}) akan dihapus secara permanen.`}
+          confirmLabel="Ya, Hapus"
+          confirmVariant="danger"
+          onConfirm={() => { setShowDeleteConfirm(false); onDelete(s.id); }}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
         <button
-          onClick={() => onDelete(s.id)}
+          onClick={() => setShowDeleteConfirm(true)}
           disabled={isLoading}
           className="p-1.5 text-red-400 hover:bg-red-50 rounded-lg transition"
           title="Hapus jadwal"
@@ -298,7 +309,6 @@ export default function TeachingScheduleModal({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Hapus jadwal kuliah ini?")) return;
     setIsLoading(true);
     await deleteTeachingSchedule(id);
     setIsLoading(false);
