@@ -34,6 +34,12 @@ export default function ProfileModal({
     }
   }, [state, onClose]);
 
+  // Lock scroll saat modal terbuka
+  useEffect(() => {
+    document.body.style.overflow = isOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (

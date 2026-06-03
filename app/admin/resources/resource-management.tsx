@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createResource, updateResource, deleteResource, toggleTeachingScheduleStatus } from "./actions";
 import TeachingScheduleModal, { type TeachingSchedule } from "./teaching-schedule-modal";
 
@@ -143,6 +143,13 @@ export default function ResourceManagement({
   const [modal, setModal] = useState<ModalConfig>({
     isOpen: false, type: "alert", title: "", message: "",
   });
+
+  // Lock scroll saat modal apapun terbuka
+  const anyModalOpen = isFormOpen || scheduleModal.isOpen || modal.isOpen;
+  useEffect(() => {
+    document.body.style.overflow = anyModalOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [anyModalOpen]);
 
   const openCreateForm = () => {
     setFormMode("create");

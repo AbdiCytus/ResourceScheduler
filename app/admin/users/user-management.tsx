@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createUser, approveUser, deleteUser } from "./actions";
 
 type UserProfile = {
@@ -31,6 +31,13 @@ export default function UserManagement({
     message: string;
     onConfirm?: () => void;
   }>({ isOpen: false, type: "alert", title: "", message: "" });
+
+  // Lock scroll saat modal apapun terbuka
+  const anyModalOpen = isModalOpen || modal.isOpen;
+  useEffect(() => {
+    document.body.style.overflow = anyModalOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [anyModalOpen]);
 
   // HANDLER: TAMBAH USER
   const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
