@@ -214,6 +214,12 @@ export default function SettingsForm({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createState]);
 
+  // Lock scroll saat add modal terbuka
+  useEffect(() => {
+    document.body.style.overflow = isAddModalOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [isAddModalOpen]);
+
   const handleDelete = async (id: string) => {
     setDeletingId(id);
     const res = await deleteActivityTemplate(id);

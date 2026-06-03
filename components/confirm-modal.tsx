@@ -38,6 +38,18 @@ export default function ConfirmModal({
     return () => document.removeEventListener("keydown", handler);
   }, [isOpen, onCancel]);
 
+  // Lock scroll saat modal terbuka
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const variantClass = {
