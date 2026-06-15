@@ -76,7 +76,7 @@ export default async function UserPortal({
       <CustomToast />
 
       {/* INFO BAR — sticky di bawah navbar */}
-      <div className="sticky top-16 z-40 w-full border-b shadow-sm">
+      <div className="sticky top-16 z-40 w-full shadow-sm">
         {settings["is_maintenance"] === "true" ? (
           <div className="w-full px-6 py-2.5 text-xs font-bold bg-red-600 text-white flex items-center justify-center gap-2 tracking-wider animate-pulse">
             ⚠️ SISTEM SEDANG MAINTENANCE — Peminjaman Ditutup Sementara
