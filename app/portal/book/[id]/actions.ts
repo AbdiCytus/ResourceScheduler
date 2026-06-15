@@ -237,9 +237,9 @@ export async function createBooking(prevState: any, formData: FormData) {
   if (hasConflict) {
     const conflictsWithScore = conflicts!
       .map((c) => {
+        const prof: any = Array.isArray(c.profiles) ? c.profiles[0] : c.profiles;
         const vRole =
-          (Array.isArray(c.profiles) ? c.profiles[0] : c.profiles)?.roles
-            ?.name || "mahasiswa";
+          (Array.isArray(prof?.roles) ? prof.roles[0] : prof?.roles)?.name || "mahasiswa";
         let vRoleWeight = parseInt(config["role_weight_mahasiswa"] || "20");
         if (vRole === "admin") vRoleWeight = parseInt(config["role_weight_admin"] || "30");
         else if (vRole === "kajur") vRoleWeight = parseInt(config["role_weight_kajur"] || "25");

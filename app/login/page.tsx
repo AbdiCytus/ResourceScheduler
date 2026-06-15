@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { login, signup } from "./actions";
 import { useSearchParams } from "next/navigation";
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams();
   const message = searchParams.get("message");
 
@@ -166,5 +166,17 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-white text-slate-500">
+        Memuat halaman...
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

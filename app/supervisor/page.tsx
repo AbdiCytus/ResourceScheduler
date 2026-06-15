@@ -136,7 +136,7 @@ export default async function SupervisorDashboard() {
           />
           <StatCard
             title="Status Sistem"
-            value={settings?.value === "true" ? "Maint." : "Online"}
+            value={settings.data?.value === "true" ? "Maint." : "Online"}
             icon={<IconServer />}
             color="text-emerald-600"
             bg="bg-emerald-50"
