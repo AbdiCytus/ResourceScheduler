@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/login/actions";
 import { useState, useEffect } from "react";
@@ -93,12 +94,14 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
           <div className="flex justify-between h-16 items-center">
             {/* LOGO */}
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-md group-hover:scale-110 transition-transform">
-                S
-              </div>
-              <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">
-                SimRuang
-              </span>
+              <Image
+                src="/logo.png"
+                alt="Smart Scheduler Logo"
+                width={140}
+                height={48}
+                className="w-auto h-12 group-hover:scale-105 transition-transform"
+                priority
+              />
             </Link>
 
             <div className="flex items-center gap-6">
