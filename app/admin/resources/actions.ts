@@ -93,12 +93,19 @@ export async function deleteResource(id: string) {
     };
   }
 
+  // Gunakan admin client untuk membypass RLS karena admin berhak menghapus semua jadwal di ruangan ini
+  const { createClient: createSupabaseClient } = await import("@supabase/supabase-js");
+  const adminSupabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   // Untuk deleteResource biasa, kita hanya bisa menghapus jika tidak ada jadwal masa depan
   // Tapi kita harus menghapus history (schedules dan teaching_schedules) agar tidak error foreign key.
-  await supabase.from("schedules").delete().eq("resource_id", id);
-  await supabase.from("teaching_schedules").delete().eq("resource_id", id);
+  await adminSupabase.from("schedules").delete().eq("resource_id", id);
+  await adminSupabase.from("teaching_schedules").delete().eq("resource_id", id);
 
-  const { error } = await supabase.from("resources").delete().eq("id", id);
+  const { error } = await adminSupabase.from("resources").delete().eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/admin/resources");
@@ -109,8 +116,15 @@ export async function deleteResource(id: string) {
 export async function forceDeleteResource(id: string) {
   const supabase = await createClient();
 
+  // Gunakan admin client
+  const { createClient: createSupabaseClient } = await import("@supabase/supabase-js");
+  const adminSupabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+
   // 1. Ambil semua jadwal yang masih berstatus approved untuk memberi notifikasi (opsional tapi baik)
-  const { data: activeSchedules } = await supabase
+  const { data: activeSchedules } = await adminSupabase
     .from("schedules")
     .select("id, user_id, title")
     .eq("resource_id", id)
@@ -124,15 +138,15 @@ export async function forceDeleteResource(id: string) {
       type: "warning",
       is_read: false,
     }));
-    await supabase.from("notifications").insert(notifications);
+    await adminSupabase.from("notifications").insert(notifications);
   }
 
   // 2. Hapus semua jadwal (past & future) agar constraint foreign key terpenuhi
-  await supabase.from("schedules").delete().eq("resource_id", id);
-  await supabase.from("teaching_schedules").delete().eq("resource_id", id);
+  await adminSupabase.from("schedules").delete().eq("resource_id", id);
+  await adminSupabase.from("teaching_schedules").delete().eq("resource_id", id);
 
   // 3. Hapus ruangan
-  const { error } = await supabase.from("resources").delete().eq("id", id);
+  const { error } = await adminSupabase.from("resources").delete().eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/admin/resources");
