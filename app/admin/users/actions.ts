@@ -105,6 +105,13 @@ export async function approveUser(userId: string) {
 }
 
 export async function deleteUser(userId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (user?.id === userId) {
+    return { error: "Aksi ditolak: Anda tidak dapat menghapus akun Anda sendiri." };
+  }
+
   // Hapus data dependen secara manual untuk menghindari error Foreign Key Constraint
   await supabaseAdmin.from("notifications").delete().eq("user_id", userId);
   await supabaseAdmin.from("audit_logs").delete().eq("user_id", userId);

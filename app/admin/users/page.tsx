@@ -28,7 +28,7 @@ export default async function AdminUsersPage() {
     <div className="min-h-screen bg-slate-50 p-6 md:p-10">
       <div className="max-w-7xl mx-auto">
         {/* Render Client Component */}
-        <UserManagement initialUsers={users || []} />
+        <UserManagement initialUsers={users || []} currentUserId={user.id} />
       </div>
     </div>
   );
