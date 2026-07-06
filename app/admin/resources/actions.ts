@@ -100,6 +100,29 @@ export async function deleteResource(id: string) {
   return { success: true };
 }
 
+// --- FORCE DELETE RESOURCE ---
+export async function forceDeleteResource(id: string) {
+  const supabase = await createClient();
+
+  // Batalkan semua jadwal yang masih berstatus approved di ruangan ini
+  await supabase
+    .from("schedules")
+    .update({ 
+      status: "cancelled", 
+      rejection_reason: "Ruangan dihapus secara permanen oleh sistem." 
+    })
+    .eq("resource_id", id)
+    .eq("status", "approved");
+
+  // Hapus ruangan
+  const { error } = await supabase.from("resources").delete().eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/resources");
+  revalidatePath("/portal");
+  return { success: true };
+}
+
 // ============================================================
 // TEACHING SCHEDULES (Jadwal Kuliah Tetap)
 // ============================================================
