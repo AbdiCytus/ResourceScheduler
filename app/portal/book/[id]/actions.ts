@@ -171,7 +171,7 @@ export async function createBooking(prevState: any, formData: FormData) {
   const newScore = activityWeight;
 
   // Derive priority_level dari bobot kegiatan (untuk backward compat)
-  const priority = activityWeight >= 30 ? "high" : activityWeight >= 20 ? "medium" : "low";
+  const priority = activityWeight >= 60 ? "high" : activityWeight >= 30 ? "medium" : "low";
 
   const { data: resource } = await supabase
     .from("resources")
@@ -338,6 +338,7 @@ export async function createBooking(prevState: any, formData: FormData) {
     resource_id: resourceId,
     user_id: user.id,
     priority_level: priority,
+    calculated_score: newScore,
     quantity_borrowed: 1,
     status: "approved",
     activity_id: activityId || null,
