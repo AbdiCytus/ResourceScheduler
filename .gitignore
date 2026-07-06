@@ -42,3 +42,4 @@ next-env.d.ts
 
 # dukementasi eksternal
 .docs
+*.pdf

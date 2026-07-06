@@ -27,7 +27,7 @@ export async function cancelBooking(scheduleId: string) {
 
   const { error } = await supabase
     .from("schedules")
-    .update({ status: "cancelled", description: "Dibatalkan oleh pengguna." })
+    .update({ status: "cancelled", rejection_reason: "Dibatalkan oleh pengguna." })
     .eq("id", scheduleId);
 
   if (error) return { error: error.message };

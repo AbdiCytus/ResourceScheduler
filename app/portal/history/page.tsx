@@ -43,7 +43,7 @@ export default async function HistoryPage() {
   const total = schedules?.length || 0;
   const approved = schedules?.filter((s) => s.status === "approved").length || 0;
   const preempted = schedules?.filter(
-    (s) => s.status === "cancelled" && s.description?.includes("Digeser")
+    (s) => s.status === "cancelled" && s.rejection_reason?.includes("Digeser")
   ).length || 0;
 
   const now = new Date();
@@ -91,7 +91,7 @@ export default async function HistoryPage() {
               const timeStr = `${startDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} – ${endDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
               const statusClass = STATUS_STYLE[item.status] || "bg-slate-100 text-slate-600";
               const statusLabel = STATUS_LABEL[item.status] || item.status;
-              const isPreempted = item.status === "cancelled" && item.description?.includes("Digeser");
+              const isPreempted = item.status === "cancelled" && item.rejection_reason?.includes("Digeser");
               const activityName = item.activity_templates?.name;
               const activityWeight = item.activity_templates?.weight as number | undefined;
               const priority = activityWeight !== undefined ? WEIGHT_TO_PRIORITY[activityWeight] : null;
@@ -155,7 +155,7 @@ export default async function HistoryPage() {
                     {isPreempted && (
                       <div className="mt-3 bg-rose-50 border border-rose-100 text-rose-700 p-2.5 rounded-xl text-xs flex items-start gap-2">
                         <span className="shrink-0">⚠️</span>
-                        <span>{item.description}</span>
+                        <span>{item.rejection_reason}</span>
                       </div>
                     )}
                   </div>
