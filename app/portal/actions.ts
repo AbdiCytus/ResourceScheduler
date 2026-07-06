@@ -112,7 +112,7 @@ export async function submitSchedule(prevState: any, formData: FormData) {
   const endTime = formData.get("endTime") as string;
   const title = formData.get("title") as string;
   const description = formData.get("description") as string;
-  const urgency = formData.get("urgency") as string;
+  const activityId = formData.get("activity_id") as string;
   const qtyRaw = formData.get("quantity");
   const requestedQty = qtyRaw ? parseInt(qtyRaw as string) : 1;
 
@@ -138,9 +138,23 @@ export async function submitSchedule(prevState: any, formData: FormData) {
   }
 
   // 4. LOGIKA KONFLIK
-  const roleScore = ROLE_WEIGHTS[userRole] || 10;
-  const urgencyScore = URGENCY_WEIGHTS[urgency] || 10;
-  const totalScore = roleScore + urgencyScore;
+  let activityWeight = 10;
+  let urgency = "low";
+  if (activityId) {
+    const { data: activity } = await supabase
+      .from("activity_templates")
+      .select("weight")
+      .eq("id", activityId)
+      .single();
+    if (activity) {
+      activityWeight = activity.weight;
+    }
+  }
+
+  if (activityWeight >= 60) urgency = "high";
+  else if (activityWeight >= 30) urgency = "medium";
+
+  const totalScore = activityWeight;
 
   if (resource.type === "Room") {
     const { data: conflict } = await supabase

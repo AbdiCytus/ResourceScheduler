@@ -332,8 +332,12 @@ export default function BookingForm({
                         key={idx}
                         type="button"
                         onClick={() => {
-                          setSelectedSlot({ start: s, end: e });
-                          setTimeMode("simple");
+                          if (isSelected) {
+                            setSelectedSlot(null);
+                          } else {
+                            setSelectedSlot({ start: s, end: e });
+                            setTimeMode("custom");
+                          }
                         }}
                         className={`text-xs font-mono font-bold px-3 py-1.5 rounded-lg border shadow-sm transition ${
                           isSelected
@@ -625,12 +629,16 @@ export default function BookingForm({
                       <label className="block text-[10px] font-bold text-slate-400 mb-1">Mulai</label>
                       <input name="start_time" type="time" required
                         min={buildingOpen} max={buildingClose}
+                        value={selectedSlot?.start || ""}
+                        onChange={(e) => setSelectedSlot(prev => ({ start: e.target.value, end: prev?.end || "" }))}
                         className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 mb-1">Selesai</label>
                       <input name="end_time" type="time" required
                         min={buildingOpen} max={buildingClose}
+                        value={selectedSlot?.end || ""}
+                        onChange={(e) => setSelectedSlot(prev => ({ start: prev?.start || "", end: e.target.value }))}
                         className="w-full rounded-lg border-slate-300 bg-slate-50 p-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" />
                     </div>
                   </div>

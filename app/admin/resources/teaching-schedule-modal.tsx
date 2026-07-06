@@ -346,22 +346,9 @@ export default function TeachingScheduleModal({
             </div>
           )}
 
-          {/* Daftar Jadwal */}
-          {schedules.map((s) => (
-            <ScheduleRow
-              key={s.id}
-              s={s}
-              dosenList={dosenList}
-              onToggle={handleToggle}
-              onDelete={handleDelete}
-              onSaveEdit={updateTeachingSchedule}
-              isLoading={isLoading}
-            />
-          ))}
-
-          {/* Form Tambah Jadwal */}
+          {/* Form Tambah Jadwal (Pindah ke atas) */}
           {showAddForm && (
-            <form onSubmit={handleAdd} className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 space-y-3">
+            <form onSubmit={handleAdd} className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 space-y-3 mb-4">
               <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Tambah Jadwal Baru</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -412,6 +399,19 @@ export default function TeachingScheduleModal({
               </div>
             </form>
           )}
+
+          {/* Daftar Jadwal */}
+          {schedules.map((s) => (
+            <ScheduleRow
+              key={s.id}
+              s={s}
+              dosenList={dosenList}
+              onToggle={handleToggle}
+              onDelete={handleDelete}
+              onSaveEdit={updateTeachingSchedule}
+              isLoading={isLoading}
+            />
+          ))}
         </div>
 
         {/* Footer */}

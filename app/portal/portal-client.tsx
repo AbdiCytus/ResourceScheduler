@@ -423,26 +423,39 @@ export default function PortalClient({
                   selectedDateSchedules.map((sch) => {
                     let statusStyle = "";
                     let statusBadge = "";
-                    switch (sch.status) {
-                      case "approved":
-                        statusStyle = "bg-white border-slate-200 hover:border-indigo-300";
-                        statusBadge = "bg-emerald-100 text-emerald-700 border-emerald-200";
-                        break;
-                      case "pending":
-                        statusStyle = "bg-amber-50/50 border-amber-200";
-                        statusBadge = "bg-amber-100 text-amber-700 border-amber-200";
-                        break;
-                      case "cancelled":
-                        statusStyle = "bg-slate-50 border-slate-200 opacity-75 grayscale";
-                        statusBadge = "bg-slate-200 text-slate-600 border-slate-300";
-                        break;
-                      case "rejected":
-                        statusStyle = "bg-red-50/50 border-red-200 opacity-80";
-                        statusBadge = "bg-red-100 text-red-700 border-red-200";
-                        break;
-                      default:
-                        statusStyle = "bg-white border-slate-200";
-                        statusBadge = "bg-slate-100 text-slate-600";
+                    let statusLabel = sch.status;
+                    const isPreempted = sch.status === "cancelled" && sch.rejection_reason?.toLowerCase().includes("digeser");
+
+                    if (isPreempted) {
+                      statusStyle = "bg-rose-50 border-rose-200 opacity-90";
+                      statusBadge = "bg-rose-100 text-rose-700 border-rose-200";
+                      statusLabel = "Digeser Sistem";
+                    } else {
+                      switch (sch.status) {
+                        case "approved":
+                          statusStyle = "bg-white border-slate-200 hover:border-indigo-300";
+                          statusBadge = "bg-emerald-100 text-emerald-700 border-emerald-200";
+                          statusLabel = "Disetujui";
+                          break;
+                        case "pending":
+                          statusStyle = "bg-amber-50/50 border-amber-200";
+                          statusBadge = "bg-amber-100 text-amber-700 border-amber-200";
+                          statusLabel = "Menunggu";
+                          break;
+                        case "cancelled":
+                          statusStyle = "bg-slate-50 border-slate-200 opacity-75 grayscale";
+                          statusBadge = "bg-slate-200 text-slate-600 border-slate-300";
+                          statusLabel = "Dibatalkan";
+                          break;
+                        case "rejected":
+                          statusStyle = "bg-red-50/50 border-red-200 opacity-80";
+                          statusBadge = "bg-red-100 text-red-700 border-red-200";
+                          statusLabel = "Ditolak";
+                          break;
+                        default:
+                          statusStyle = "bg-white border-slate-200";
+                          statusBadge = "bg-slate-100 text-slate-600";
+                      }
                     }
                     return (
                       <div key={sch.id} className={`group flex flex-col sm:flex-row gap-4 p-4 rounded-xl border transition items-center ${statusStyle}`}>
@@ -457,7 +470,7 @@ export default function PortalClient({
                           <div className="flex justify-between items-start mb-1 gap-2">
                             <h4 className="font-bold text-slate-900 text-base line-clamp-1">{sch.title}</h4>
                             <span className={`text-[9px] font-bold px-2 py-0.5 rounded uppercase border ${statusBadge}`}>
-                              {sch.status}
+                              {statusLabel}
                             </span>
                           </div>
                           <div className="flex flex-col gap-1 text-xs text-slate-500">

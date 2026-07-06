@@ -43,7 +43,7 @@ export default async function HistoryPage() {
   const total = schedules?.length || 0;
   const approved = schedules?.filter((s) => s.status === "approved").length || 0;
   const preempted = schedules?.filter(
-    (s) => s.status === "cancelled" && s.rejection_reason?.includes("Digeser")
+    (s) => s.status === "cancelled" && s.rejection_reason?.toLowerCase().includes("digeser")
   ).length || 0;
 
   const now = new Date();
@@ -90,8 +90,8 @@ export default async function HistoryPage() {
               });
               const timeStr = `${startDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} – ${endDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
               const statusClass = STATUS_STYLE[item.status] || "bg-slate-100 text-slate-600";
-              const statusLabel = STATUS_LABEL[item.status] || item.status;
-              const isPreempted = item.status === "cancelled" && item.rejection_reason?.includes("Digeser");
+              const isPreempted = item.status === "cancelled" && item.rejection_reason?.toLowerCase().includes("digeser");
+              const statusLabel = isPreempted ? "Digeser Sistem" : (STATUS_LABEL[item.status] || item.status);
               const activityName = item.activity_templates?.name;
               const activityWeight = item.activity_templates?.weight as number | undefined;
               const priority = activityWeight !== undefined ? WEIGHT_TO_PRIORITY[activityWeight] : null;
