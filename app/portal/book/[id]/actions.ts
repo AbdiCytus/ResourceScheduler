@@ -316,7 +316,7 @@ export async function createBooking(prevState: any, formData: FormData) {
         .from("schedules")
         .update({
           status: "cancelled",
-          description: `Digeser otomatis oleh sistem (Kalah Prioritas).`,
+          rejection_reason: `Digeser otomatis oleh sistem (Kalah Prioritas).`,
         })
         .eq("id", v.id);
       await createNotification(
