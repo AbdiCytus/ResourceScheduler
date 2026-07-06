@@ -93,6 +93,11 @@ export async function deleteResource(id: string) {
     };
   }
 
+  // Untuk deleteResource biasa, kita hanya bisa menghapus jika tidak ada jadwal masa depan
+  // Tapi kita harus menghapus history (schedules dan teaching_schedules) agar tidak error foreign key.
+  await supabase.from("schedules").delete().eq("resource_id", id);
+  await supabase.from("teaching_schedules").delete().eq("resource_id", id);
+
   const { error } = await supabase.from("resources").delete().eq("id", id);
   if (error) return { error: error.message };
 
@@ -104,17 +109,29 @@ export async function deleteResource(id: string) {
 export async function forceDeleteResource(id: string) {
   const supabase = await createClient();
 
-  // Batalkan semua jadwal yang masih berstatus approved di ruangan ini
-  await supabase
+  // 1. Ambil semua jadwal yang masih berstatus approved untuk memberi notifikasi (opsional tapi baik)
+  const { data: activeSchedules } = await supabase
     .from("schedules")
-    .update({ 
-      status: "cancelled", 
-      rejection_reason: "Ruangan dihapus secara permanen oleh sistem." 
-    })
+    .select("id, user_id, title")
     .eq("resource_id", id)
     .eq("status", "approved");
 
-  // Hapus ruangan
+  if (activeSchedules && activeSchedules.length > 0) {
+    const notifications = activeSchedules.map((sch) => ({
+      user_id: sch.user_id,
+      title: "Jadwal Dibatalkan",
+      message: `Maaf, pengajuan jadwal "${sch.title}" dibatalkan karena ruangan dihapus permanen oleh admin.`,
+      type: "warning",
+      is_read: false,
+    }));
+    await supabase.from("notifications").insert(notifications);
+  }
+
+  // 2. Hapus semua jadwal (past & future) agar constraint foreign key terpenuhi
+  await supabase.from("schedules").delete().eq("resource_id", id);
+  await supabase.from("teaching_schedules").delete().eq("resource_id", id);
+
+  // 3. Hapus ruangan
   const { error } = await supabase.from("resources").delete().eq("id", id);
   if (error) return { error: error.message };
 
