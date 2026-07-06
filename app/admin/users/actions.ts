@@ -105,7 +105,13 @@ export async function approveUser(userId: string) {
 }
 
 export async function deleteUser(userId: string) {
-  // Gunakan Admin Client untuk hapus Auth User juga
+  // Hapus data dependen secara manual untuk menghindari error Foreign Key Constraint
+  await supabaseAdmin.from("notifications").delete().eq("user_id", userId);
+  await supabaseAdmin.from("audit_logs").delete().eq("user_id", userId);
+  await supabaseAdmin.from("schedules").delete().eq("user_id", userId);
+  await supabaseAdmin.from("profiles").delete().eq("id", userId);
+
+  // Gunakan Admin Client untuk hapus Auth User
   const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
   if (error) return { error: error.message };
   revalidatePath("/admin/users");
