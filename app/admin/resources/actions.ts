@@ -100,12 +100,14 @@ export async function deleteResource(id: string) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
 
-  // Untuk deleteResource biasa, kita hanya bisa menghapus jika tidak ada jadwal masa depan
-  // Tapi kita harus menghapus history (schedules dan teaching_schedules) agar tidak error foreign key.
-  await adminSupabase.from("schedules").delete().eq("resource_id", id);
-  await adminSupabase.from("teaching_schedules").delete().eq("resource_id", id);
-
-  const { error } = await adminSupabase.from("resources").delete().eq("id", id);
+  // Kita cukup soft-delete (hide) ruangan ini agar history jadwal sebelumnya tetap aman.
+  const { error } = await adminSupabase
+    .from("resources")
+    .update({
+      is_active: false,
+      scheduled_for_deletion_at: new Date().toISOString()
+    })
+    .eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/admin/resources");
@@ -141,12 +143,25 @@ export async function forceDeleteResource(id: string) {
     await adminSupabase.from("notifications").insert(notifications);
   }
 
-  // 2. Hapus semua jadwal (past & future) agar constraint foreign key terpenuhi
-  await adminSupabase.from("schedules").delete().eq("resource_id", id);
-  await adminSupabase.from("teaching_schedules").delete().eq("resource_id", id);
+  // 2. Batalkan semua jadwal (past & future) di ruangan ini
+  await adminSupabase
+    .from("schedules")
+    .update({ 
+      status: "cancelled", 
+      rejection_reason: "Ruangan dihapus secara permanen oleh admin." 
+    })
+    .eq("resource_id", id)
+    .eq("status", "approved");
 
-  // 3. Hapus ruangan
-  const { error } = await adminSupabase.from("resources").delete().eq("id", id);
+  // 3. Soft-delete ruangan agar history tidak error foreign key
+  const { error } = await adminSupabase
+    .from("resources")
+    .update({
+      is_active: false,
+      scheduled_for_deletion_at: new Date().toISOString()
+    })
+    .eq("id", id);
+
   if (error) return { error: error.message };
 
   revalidatePath("/admin/resources");

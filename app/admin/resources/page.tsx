@@ -33,20 +33,8 @@ export default async function ResourcesPage() {
     dosenList = (dosenProfiles || []).map((p) => p.full_name).filter(Boolean);
   }
 
-  // 2. Logic Lazy Deletion
+  // 3. Filter Data untuk Tampilan UI (Hanya tampilkan resource yang aktif / belum di-soft delete)
   const now = new Date();
-  const resourcesToDelete = resources?.filter(
-    (r) =>
-      r.scheduled_for_deletion_at &&
-      new Date(r.scheduled_for_deletion_at) <= now
-  );
-
-  if (resourcesToDelete && resourcesToDelete.length > 0) {
-    const idsToDelete = resourcesToDelete.map((r) => r.id);
-    await supabase.from("resources").delete().in("id", idsToDelete);
-  }
-
-  // 3. Filter Data untuk Tampilan UI
   const cleanResources =
     resources?.filter(
       (r) =>
