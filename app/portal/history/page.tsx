@@ -94,9 +94,9 @@ export default async function HistoryPage() {
               const startDate = new Date(item.start_time);
               const endDate = new Date(item.end_time);
               const dateStr = startDate.toLocaleDateString("id-ID", {
-                weekday: "long", day: "numeric", month: "long", year: "numeric",
+                weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Asia/Jakarta"
               });
-              const timeStr = `${startDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} – ${endDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
+              const timeStr = `${startDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} – ${endDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })}`;
               const statusClass = STATUS_STYLE[item.status] || "bg-slate-100 text-slate-600";
               const isPreempted = item.status === "cancelled" && (item.rejection_reason?.toLowerCase().includes("digeser") || item.rejection_reason?.toLowerCase().includes("ditimpa"));
               const statusLabel = isPreempted ? "Ditimpa Sistem" : (STATUS_LABEL[item.status] || item.status);
