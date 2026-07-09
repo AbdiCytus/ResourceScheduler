@@ -70,7 +70,7 @@ function LoginForm() {
                       name="role"
                       required
                       onChange={(e) =>
-                        setIsMahasiswa(e.target.value === "dosen")
+                        setIsMahasiswa(e.target.value === "mahasiswa")
                       }
                       className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 p-3 bg-slate-50 appearance-none"
                     >
