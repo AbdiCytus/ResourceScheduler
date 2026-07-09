@@ -15,6 +15,11 @@ export async function updateProfile(prevState: any, formData: FormData) {
   const username = formData.get("username") as string;
   const password = formData.get("password") as string;
   const confirmPassword = formData.get("confirmPassword") as string;
+  const nim = formData.get("nim") as string | null;
+  const prodi = formData.get("prodi") as string | null;
+
+  // Siapkan object data update untuk profil
+  const updates: any = {};
 
   // 2. Update Username (jika berubah)
   if (username && username.trim().length > 0) {
@@ -24,15 +29,42 @@ export async function updateProfile(prevState: any, formData: FormData) {
       .select("id")
       .eq("username", username)
       .neq("id", user.id) // Abaikan user sendiri
-      .single();
+      .maybeSingle();
 
     if (existing) {
       return { error: "Username sudah dipakai orang lain." };
     }
+    updates.username = username;
+  }
 
+  // 2b. Update NIM & Prodi
+  if (nim !== null) {
+    if (nim.trim().length > 0) {
+      const { data: existingNim } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("nim", nim)
+        .neq("id", user.id)
+        .maybeSingle();
+
+      if (existingNim) {
+        return { error: `NIM '${nim}' sudah digunakan oleh user lain.` };
+      }
+      updates.nim = nim;
+    } else {
+      updates.nim = null;
+    }
+  }
+
+  if (prodi !== null) {
+    updates.prodi = prodi;
+  }
+
+  // Eksekusi update profile jika ada yang dirubah
+  if (Object.keys(updates).length > 0) {
     const { error: profileError } = await supabase
       .from("profiles")
-      .update({ username })
+      .update(updates)
       .eq("id", user.id);
 
     if (profileError)

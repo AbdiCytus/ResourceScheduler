@@ -3,17 +3,22 @@
 import { createClient } from "@/utils/supabase/server";
 import { revalidatePath } from "next/cache";
 
-// --- [BARU DITAMBAHKAN KEMBALI] Fungsi untuk mengambil data settings ---
+// --- Fungsi untuk mengambil data settings ---
 export async function getSystemSettings() {
   const supabase = await createClient();
   const { data } = await supabase.from("system_settings").select("*");
 
   const settings: Record<string, string> = {};
-  data?.forEach((item: any) => {
-    settings[item.key] = item.value;
-  });
-
+  data?.forEach((item: any) => settings[item.key] = item.value);
   return settings;
+}
+
+
+// --- Fungsi untuk mengambil data template kegiatan ---
+export async function getActivityTemplates() {
+  const supabase = await createClient();
+  const { data } = await supabase.from("activity_templates").select("*").order("weight", { ascending: false })
+  return data;
 }
 
 // --- TOGGLE MAINTENANCE MODE ---

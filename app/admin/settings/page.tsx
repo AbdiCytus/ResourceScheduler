@@ -1,7 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import SettingsForm from "./settings-form";
-import { getSystemSettings } from "./actions";
+import { getSystemSettings, getActivityTemplates } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,12 +24,9 @@ export default async function SettingsPage() {
   if (role !== "admin") redirect("/portal");
 
   // 2. Ambil Data Settings & Template Kegiatan secara paralel
-  const [settings, { data: activityTemplates }] = await Promise.all([
+  const [settings, activityTemplates] = await Promise.all([
     getSystemSettings(),
-    supabase
-      .from("activity_templates")
-      .select("*")
-      .order("weight", { ascending: false }),
+    getActivityTemplates(),
   ]);
 
   return (

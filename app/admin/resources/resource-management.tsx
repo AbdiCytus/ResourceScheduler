@@ -25,20 +25,18 @@ function ScheduleBadge({ schedule }: { schedule: TeachingSchedule }) {
   return (
     <div
       title={`${schedule.matakuliah} – ${schedule.kelas}\n${isOffline ? "Kelas Aktif" : "Dosen tidak hadir (Kosong)"}`}
-      className={`group flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-mono font-bold cursor-default transition ${
-        isOffline
-          ? "bg-rose-50 border-rose-200 text-rose-700"
-          : "bg-emerald-50 border-emerald-200 text-emerald-700"
-      }`}
+      className={`group flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-mono font-bold cursor-default transition ${isOffline
+        ? "bg-rose-50 border-rose-200 text-rose-700"
+        : "bg-emerald-50 border-emerald-200 text-emerald-700"
+        }`}
     >
       <span>{schedule.start_time.slice(0, 5)}–{schedule.end_time.slice(0, 5)}</span>
       <button
         onClick={handleToggle}
         disabled={loading}
         title={isOffline ? "Tandai Kosong" : "Tandai Aktif"}
-        className={`w-3.5 h-3.5 rounded-full border transition opacity-60 group-hover:opacity-100 ${
-          isOffline ? "bg-rose-400 border-rose-500" : "bg-emerald-400 border-emerald-500"
-        } disabled:opacity-30 flex items-center justify-center`}
+        className={`w-3.5 h-3.5 rounded-full border transition opacity-60 group-hover:opacity-100 ${isOffline ? "bg-rose-400 border-rose-500" : "bg-emerald-400 border-emerald-500"
+          } disabled:opacity-30 flex items-center justify-center`}
       >
         <span className="sr-only">toggle</span>
       </button>
@@ -119,6 +117,12 @@ type ModalConfig = {
   onConfirm?: () => void;
 };
 
+type ScheduleModal = {
+  isOpen: boolean;
+  resourceId: string;
+  resourceName: string;
+}
+
 export default function ResourceManagement({
   initialResources,
   teachingSchedules,
@@ -134,11 +138,10 @@ export default function ResourceManagement({
   const [isLoading, setIsLoading] = useState(false);
 
   // State untuk modal jadwal kuliah
-  const [scheduleModal, setScheduleModal] = useState<{
-    isOpen: boolean;
-    resourceId: string;
-    resourceName: string;
-  }>({ isOpen: false, resourceId: "", resourceName: "" });
+  const [scheduleModal, setScheduleModal] = useState<ScheduleModal>({
+    isOpen: false, resourceId: "", resourceName: ""
+  });
+
 
   const [modal, setModal] = useState<ModalConfig>({
     isOpen: false, type: "alert", title: "", message: "",
@@ -265,6 +268,7 @@ export default function ResourceManagement({
               const roomSchedules = teachingSchedules.filter((s) => s.resource_id === res.id);
               return (
                 <tr key={res.id} className="hover:bg-slate-50 transition-colors">
+                  {/* Nama Ruangan */}
                   <td className="px-6 py-4">
                     <p className="font-semibold text-slate-900">{res.name}</p>
                     {res.description && <p className="text-xs text-slate-400 mt-0.5">{res.description}</p>}
@@ -272,7 +276,9 @@ export default function ResourceManagement({
                       <span className="text-[10px] text-red-500 font-bold animate-pulse">⏳ SEGERA DIHAPUS</span>
                     )}
                   </td>
+                  {/* Kapasitas */}
                   <td className="px-6 py-4 text-slate-600 text-sm">{res.capacity} Org</td>
+                  {/* Fasilitas */}
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-1">
                       {res.facilities?.map((f, i) => (
@@ -280,12 +286,14 @@ export default function ResourceManagement({
                       ))}
                     </div>
                   </td>
+                  {/* Jadwal Kuliah */}
                   <td className="px-6 py-4">
                     <ScheduleColumn
                       schedules={roomSchedules}
                       onManage={() => setScheduleModal({ isOpen: true, resourceId: res.id, resourceName: res.name })}
                     />
                   </td>
+                  {/* Aksi */}
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-1">
                       {/* Kelola Jadwal Kuliah */}
@@ -403,9 +411,8 @@ export default function ResourceManagement({
       {modal.isOpen && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl">
-            <div className={`w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl ${
-              modal.type === "danger" || modal.title.includes("Gagal") ? "bg-red-50" : "bg-indigo-50"
-            }`}>
+            <div className={`w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl ${modal.type === "danger" || modal.title.includes("Gagal") ? "bg-red-50" : "bg-indigo-50"
+              }`}>
               {modal.type === "danger" || modal.title.includes("Gagal") ? "⚠️" : "ℹ️"}
             </div>
             <h3 className="text-xl font-bold mb-2 text-slate-900">{modal.title}</h3>
@@ -416,9 +423,8 @@ export default function ResourceManagement({
                   <button onClick={() => setModal((p) => ({ ...p, isOpen: false }))}
                     className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-medium transition">Batal</button>
                   <button onClick={modal.onConfirm} disabled={isLoading}
-                    className={`px-5 py-2.5 text-white rounded-xl font-bold transition ${
-                      modal.type === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-indigo-600 hover:bg-indigo-700"
-                    }`}>
+                    className={`px-5 py-2.5 text-white rounded-xl font-bold transition ${modal.type === "danger" ? "bg-red-600 hover:bg-red-700" : "bg-indigo-600 hover:bg-indigo-700"
+                      }`}>
                     {isLoading ? "Memproses..." : "Ya, Lanjutkan"}
                   </button>
                 </>

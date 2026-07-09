@@ -194,7 +194,7 @@ export async function submitSchedule(prevState: any, formData: FormData) {
         .from("schedules")
         .update({
           status: "cancelled",
-          rejection_reason: `Digeser prioritas tinggi.`,
+          rejection_reason: `Ditimpa prioritas tinggi.`,
         })
         .eq("id", conflict.id);
 
@@ -202,7 +202,7 @@ export async function submitSchedule(prevState: any, formData: FormData) {
       await createNotification(
         supabase,
         conflict.user_id,
-        "Jadwal Digeser Sistem",
+        "Jadwal Dibatalkan Sistem",
         `Jadwal "${conflict.title}" Anda dibatalkan karena ada kegiatan prioritas lebih tinggi (Skor ${totalScore} vs ${conflictScore}).`,
         "error"
       );

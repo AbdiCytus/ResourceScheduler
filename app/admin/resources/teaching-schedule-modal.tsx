@@ -78,9 +78,8 @@ function SearchableDosenSelect({
                 key={d}
                 type="button"
                 onMouseDown={() => handleSelect(d)}
-                className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition ${
-                  selected === d ? "font-bold text-indigo-700 bg-indigo-50" : "text-slate-700"
-                }`}
+                className={`w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition ${selected === d ? "font-bold text-indigo-700 bg-indigo-50" : "text-slate-700"
+                  }`}
               >
                 {d}
               </button>
@@ -203,9 +202,8 @@ function ScheduleRow({
   }
 
   return (
-    <div className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
-      s.is_offline ? "bg-white border-slate-200" : "bg-slate-50 border-slate-100 opacity-70"
-    }`}>
+    <div className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${s.is_offline ? "bg-white border-slate-200" : "bg-slate-50 border-slate-100 opacity-70"
+      }`}>
       {/* Hari Badge */}
       <span className="w-14 flex-shrink-0 text-center text-[10px] font-black uppercase bg-indigo-100 text-indigo-700 px-2 py-1 rounded-lg">
         {DAY_NAMES[s.day_of_week]}
@@ -229,11 +227,10 @@ function ScheduleRow({
           onClick={() => onToggle(s.id, s.is_offline)}
           disabled={isLoading}
           title={s.is_offline ? "Kelas Offline (Klik → Online)" : "Kelas Online (Klik → Offline)"}
-          className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition ${
-            s.is_offline
+          className={`text-[10px] font-bold px-2.5 py-1 rounded-full border transition ${s.is_offline
               ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
               : "bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200"
-          }`}
+            }`}
         >
           {s.is_offline ? "Offline" : "Online"}
         </button>
@@ -346,7 +343,7 @@ export default function TeachingScheduleModal({
             </div>
           )}
 
-          {/* Form Tambah Jadwal (Pindah ke atas) */}
+          {/* Form Tambah Jadwal */}
           {showAddForm && (
             <form onSubmit={handleAdd} className="bg-indigo-50 border border-indigo-200 rounded-2xl p-4 space-y-3 mb-4">
               <p className="text-xs font-bold text-indigo-700 uppercase tracking-wider">Tambah Jadwal Baru</p>

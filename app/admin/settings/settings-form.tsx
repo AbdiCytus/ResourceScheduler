@@ -194,7 +194,7 @@ function TemplateRow({
 
 export default function SettingsForm({
   initialSettings,
-  activityTemplates: initialTemplates,
+  activityTemplates,
 }: {
   initialSettings: Record<string, string>;
   activityTemplates: ActivityTemplate[];
@@ -202,7 +202,7 @@ export default function SettingsForm({
   const [state, formAction, isPending] = useActionState(updateSettings, null);
   const [createState, createAction, isCreating] = useActionState(createActivityTemplate, null);
   const [maintState, maintAction] = useActionState(toggleMaintenance, null);
-  const [templates, setTemplates] = useState<ActivityTemplate[]>(initialTemplates);
+  const [templates, setTemplates] = useState<ActivityTemplate[]>(activityTemplates);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
@@ -211,7 +211,7 @@ export default function SettingsForm({
     if (createState?.success && isAddModalOpen) {
       setIsAddModalOpen(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [createState]);
 
   // Lock scroll saat add modal terbuka

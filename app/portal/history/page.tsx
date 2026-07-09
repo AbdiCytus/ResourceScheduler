@@ -48,6 +48,14 @@ export default async function HistoryPage() {
 
   const now = new Date();
 
+  const { data: userSchedules } = await supabase
+    .from("schedules")
+    .select("...")
+    .eq("user_id", user.id)
+    .eq("is_hidden_by_user", false)
+    .order("start_time", { ascending: false });
+
+
   return (
     <div className="min-h-screen bg-slate-50 p-6 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -69,7 +77,7 @@ export default async function HistoryPage() {
             {[
               { label: "Total Pengajuan", value: total, color: "text-slate-700" },
               { label: "Berhasil", value: approved, color: "text-emerald-600" },
-              { label: "Digeser Sistem", value: preempted, color: "text-rose-600" },
+              { label: "Dibatalkan Sistem", value: preempted, color: "text-rose-600" },
             ].map((stat) => (
               <div key={stat.label} className="bg-white rounded-2xl border border-slate-200 p-4 text-center shadow-sm">
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{stat.label}</p>
@@ -90,8 +98,8 @@ export default async function HistoryPage() {
               });
               const timeStr = `${startDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })} – ${endDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}`;
               const statusClass = STATUS_STYLE[item.status] || "bg-slate-100 text-slate-600";
-              const isPreempted = item.status === "cancelled" && item.rejection_reason?.toLowerCase().includes("digeser");
-              const statusLabel = isPreempted ? "Digeser Sistem" : (STATUS_LABEL[item.status] || item.status);
+              const isPreempted = item.status === "cancelled" && (item.rejection_reason?.toLowerCase().includes("digeser") || item.rejection_reason?.toLowerCase().includes("ditimpa"));
+              const statusLabel = isPreempted ? "Ditimpa Sistem" : (STATUS_LABEL[item.status] || item.status);
               const activityName = item.activity_templates?.name;
               const activityWeight = item.activity_templates?.weight as number | undefined;
               const priority = activityWeight !== undefined ? WEIGHT_TO_PRIORITY[activityWeight] : null;
@@ -105,9 +113,8 @@ export default async function HistoryPage() {
               return (
                 <div
                   key={item.id}
-                  className={`bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md transition flex flex-col md:flex-row gap-5 items-start ${
-                    isPreempted ? "border-rose-200 bg-rose-50/30" : "border-slate-200"
-                  }`}
+                  className={`bg-white p-5 rounded-2xl border shadow-sm hover:shadow-md transition flex flex-col md:flex-row gap-5 items-start ${isPreempted ? "border-rose-200 bg-rose-50/30" : "border-slate-200"
+                    }`}
                 >
                   {/* Ikon */}
                   <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-2xl shrink-0">

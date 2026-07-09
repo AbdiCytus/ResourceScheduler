@@ -32,16 +32,31 @@ export async function createUser(formData: FormData) {
   const username = formData.get("username") as string;
   const roleName = formData.get("role") as string;
   const roleId = ROLE_MAP[roleName] || 2; // Default User
+  const nim = formData.get("nim") as string | null;
+  const prodi = formData.get("prodi") as string | null;
 
   // 2. Cek Username Unik (Pakai Admin Client agar pasti bisa baca semua)
   const { data: existingUser } = await supabaseAdmin
     .from("profiles")
     .select("username")
     .eq("username", username)
-    .single();
+    .maybeSingle();
 
   if (existingUser) {
     return { error: `Username '${username}' sudah digunakan.` };
+  }
+
+  // 2b. Cek NIM Unik (Jika Mahasiswa)
+  if (roleName === "mahasiswa" && nim) {
+    const { data: existingNim } = await supabaseAdmin
+      .from("profiles")
+      .select("nim")
+      .eq("nim", nim)
+      .maybeSingle();
+
+    if (existingNim) {
+      return { error: `NIM '${nim}' sudah digunakan.` };
+    }
   }
 
   // 3. Buat User di Supabase Auth
@@ -57,7 +72,7 @@ export async function createUser(formData: FormData) {
   if (!authData.user) return { error: "Gagal membuat user auth." };
 
   // 4. Update Profile (Username, Role, Approved)
-  // Kita update profile yang otomatis dibuat oleh Trigger (atau insert manual jika trigger belum ada)
+  // Update profile yang otomatis dibuat oleh Trigger (atau insert manual jika trigger belum ada)
   // Tunggu sebentar agar trigger database selesai
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -69,6 +84,8 @@ export async function createUser(formData: FormData) {
       role_id: roleId,
       is_approved: true, // Admin yang buat, jadi langsung approve
       email: email,
+      nim: roleName === "mahasiswa" ? nim : null,
+      prodi: roleName === "mahasiswa" ? prodi : null,
     })
     .eq("id", authData.user.id);
 
@@ -85,6 +102,8 @@ export async function createUser(formData: FormData) {
       role_id: roleId,
       is_approved: true,
       email: email,
+      nim: roleName === "mahasiswa" ? nim : null,
+      prodi: roleName === "mahasiswa" ? prodi : null,
     });
   }
 
@@ -92,7 +111,7 @@ export async function createUser(formData: FormData) {
   return { success: true };
 }
 
-// ... (Fungsi approveUser dan deleteUser yang lama tetap ada di bawah sini)
+// Fungsi approveUser dan deleteUser
 export async function approveUser(userId: string) {
   const supabase = await createClient();
   const { error } = await supabase

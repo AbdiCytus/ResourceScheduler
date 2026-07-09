@@ -326,11 +326,12 @@ export default function PortalClient({
                     </p>
                   </div>
 
-                  {isSupervisor ? (
+                  {/* {isSupervisor ? (
                     <button disabled className="w-full bg-slate-50 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed">
                       Mode Pantau
                     </button>
-                  ) : isDisabled ? (
+                  ) : */
+                   isDisabled ? (
                     <button disabled className="w-full bg-slate-100 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed">
                       {isMaintenance ? "Booking Ditutup" : "Tidak Tersedia"}
                     </button>
@@ -424,12 +425,12 @@ export default function PortalClient({
                     let statusStyle = "";
                     let statusBadge = "";
                     let statusLabel = sch.status;
-                    const isPreempted = sch.status === "cancelled" && sch.rejection_reason?.toLowerCase().includes("digeser");
+                    const isPreempted = sch.status === "cancelled" && (sch.rejection_reason?.toLowerCase().includes("digeser") || sch.rejection_reason?.toLowerCase().includes("ditimpa"));
 
                     if (isPreempted) {
                       statusStyle = "bg-rose-50 border-rose-200 opacity-90";
                       statusBadge = "bg-rose-100 text-rose-700 border-rose-200";
-                      statusLabel = "Digeser Sistem";
+                      statusLabel = "Dibata Sistem";
                     } else {
                       switch (sch.status) {
                         case "approved":

@@ -35,3 +35,24 @@ export async function cancelBooking(scheduleId: string) {
   revalidatePath("/portal/history");
   return { success: true };
 }
+
+export async function sembunyikanRiwayat(scheduleId: string) {
+  const supabase = await createClient();
+  
+  // Pastikan yang menyembunyikan adalah pemilik jadwal
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Belum login." };
+
+  // Ubah status "is_hidden_by_user" menjadi true
+  const { error } = await supabase
+    .from("schedules")
+    .update({ is_hidden_by_user: true })
+    .eq("id", scheduleId)
+    .eq("user_id", user.id); // Guard agar tidak mengubah milik orang lain
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/portal/history");
+  return { success: true };
+}
+

@@ -1,154 +1,120 @@
 "use client";
 
-import { useState } from "react";
-import { approveUser, deleteUser } from "./actions";
-import ConfirmModal from "@/components/confirm-modal";
+import { UserProfile } from "@/types";
 
-export default function UserManagementTable({
-  initialUsers,
-}: {
-  initialUsers: any[];
-}) {
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [confirm, setConfirm] = useState<{
-    type: "approve" | "delete";
-    id: string;
-    name: string;
-  } | null>(null);
+type UserTableProps = {
+  users: UserProfile[];
+  currentUserId: string;
+  onApprove: (id: string) => void;
+  onDelete: (id: string, name: string) => void;
+  isLoading: boolean;
+};
 
-  const handleApprove = async (id: string) => {
-    setConfirm(null);
-    setLoadingId(id);
-    await approveUser(id);
-    setLoadingId(null);
-  };
-
-  const handleDelete = async (id: string) => {
-    setConfirm(null);
-    setLoadingId(id);
-    const res = await deleteUser(id);
-    if (res.error) alert(res.error);
-    setLoadingId(null);
-  };
-
+export default function UserTable({
+  users,
+  currentUserId,
+  onApprove,
+  onDelete,
+  isLoading,
+}: UserTableProps) {
   return (
-    <>
-      {/* Modal Approve */}
-      <ConfirmModal
-        isOpen={confirm?.type === "approve"}
-        title="Setujui User?"
-        message={`"${confirm?.name}" akan dapat login dan menggunakan sistem setelah disetujui.`}
-        confirmLabel="Ya, Setujui"
-        confirmVariant="primary"
-        onConfirm={() => confirm && handleApprove(confirm.id)}
-        onCancel={() => setConfirm(null)}
-      />
-
-      {/* Modal Hapus */}
-      <ConfirmModal
-        isOpen={confirm?.type === "delete"}
-        title="Hapus User?"
-        message={`"${confirm?.name}" akan dihapus secara permanen. Data tidak bisa dikembalikan.`}
-        confirmLabel="Ya, Hapus"
-        confirmVariant="danger"
-        onConfirm={() => confirm && handleDelete(confirm.id)}
-        onCancel={() => setConfirm(null)}
-      />
-
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-bold tracking-wider">
-            <tr>
-              <th className="px-6 py-4">Nama & Username</th>
-              <th className="px-6 py-4">Email</th>
-              <th className="px-6 py-4">Role</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {initialUsers.map((u) => (
-              <tr key={u.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="font-bold text-slate-900">
-                    {u.full_name || "Tanpa Nama"}
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+      <table className="w-full text-left border-collapse">
+        <thead className="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-bold tracking-wider">
+          <tr>
+            <th className="px-6 py-4">Nama & Email</th>
+            <th className="px-6 py-4">Username</th>
+            <th className="px-6 py-4">Role</th>
+            <th className="px-6 py-4">NIM & Prodi</th>
+            <th className="px-6 py-4 text-center">Status</th>
+            <th className="px-6 py-4 text-right">Aksi</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {users.map((user) => (
+            <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+              <td className="px-6 py-4">
+                <div className="text-sm font-bold text-slate-900">
+                  {user.full_name || "Tanpa Nama"}
+                </div>
+                <div className="text-xs text-slate-500">{user.email}</div>
+              </td>
+              <td className="px-6 py-4 text-sm text-slate-600 font-mono">
+                @{user.username || "-"}
+              </td>
+              <td className="px-6 py-4">
+                <span
+                  className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${
+                    user.roles?.name === "admin"
+                      ? "bg-red-100 text-red-700"
+                      : user.roles?.name === "kajur"
+                      ? "bg-purple-100 text-purple-700"
+                      : user.roles?.name === "dosen"
+                      ? "bg-yellow-100 text-yellow-700"
+                      : "bg-blue-100 text-blue-700" // mahasiswa
+                  }`}
+                >
+                  {user.roles?.name || "Tidak Terdaftar"}
+                </span>
+              </td>
+              <td className="px-6 py-4 text-sm text-slate-600">
+                {user.roles?.name === "mahasiswa" || user.role_id === 2 ? (
+                  <div>
+                    <div className="font-bold text-slate-900">{user.nim || "-"}</div>
+                    <div className="text-xs text-slate-500">{user.prodi || "-"}</div>
                   </div>
-                  <div className="text-xs text-slate-500">
-                    @{u.username || "-"}
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600">{u.email}</td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
-                      u.roles?.name === "admin"
-                        ? "bg-purple-100 text-purple-700"
-                        : u.roles?.name === "supervisor"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-slate-100 text-slate-600"
-                    }`}
-                  >
-                    {u.roles?.name || "User"}
+                ) : (
+                  <span className="text-slate-400 italic">Role tidak menggunakan NIM & Prodi</span>
+                )}
+              </td>
+              <td className="px-6 py-4 text-center">
+                {user.is_approved ? (
+                  <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">
+                    Aktif
                   </span>
-                </td>
-                <td className="px-6 py-4">
-                  {u.is_approved ? (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 border border-emerald-200">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>{" "}
-                      Active
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 border border-amber-200 animate-pulse">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>{" "}
-                      Pending
-                    </span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <div className="flex justify-end gap-2">
-                    {!u.is_approved && (
-                      <button
-                        onClick={() => setConfirm({ type: "approve", id: u.id, name: u.full_name || u.email })}
-                        disabled={loadingId === u.id}
-                        className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-700 transition shadow-sm disabled:opacity-50"
-                      >
-                        {loadingId === u.id ? "..." : "✔ Approve"}
-                      </button>
-                    )}
-
-                    <button
-                      onClick={() => setConfirm({ type: "delete", id: u.id, name: u.full_name || u.email })}
-                      disabled={loadingId === u.id}
-                      className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition disabled:opacity-30"
-                      title="Hapus User"
+                ) : (
+                  <button
+                    onClick={() => onApprove(user.id)}
+                    disabled={isLoading}
+                    className="text-[10px] bg-orange-100 text-orange-700 hover:bg-orange-200 px-3 py-1 rounded-full font-bold border border-orange-200 transition"
+                  >
+                    Setujui?
+                  </button>
+                )}
+              </td>
+              <td className="px-6 py-4 text-right">
+                {user.id !== currentUserId && (
+                  <button
+                    onClick={() => onDelete(user.id, user.full_name)}
+                    className="text-red-600 hover:bg-red-50 p-2 rounded transition"
+                    title="Hapus User"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                      className="w-5 h-5"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                        className="w-5 h-5"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M16.5 4.478v.227a48.816 48.816 0 0 1 3.878.512.75.75 0 1 1-.256 1.478l-.209-.035-1.005 13.07a3 3 0 0 1-2.991 2.77H8.084a3 3 0 0 1-2.991-2.77L4.087 6.66l-.209.035a.75.75 0 0 1-.256-1.478A48.567 48.567 0 0 1 7.5 4.705v-.227c0-1.564 1.213-2.9 2.816-2.951a52.662 52.662 0 0 1 3.369 0c1.603.051 2.815 1.387 2.815 2.951Zm-6.136-1.452a51.196 51.196 0 0 1 3.273 0C14.39 3.05 15 3.684 15 4.478v.113a49.488 49.488 0 0 0-6 0v-.113c0-.794.609-1.428 1.364-1.452Zm-.355 5.945a.75.75 0 1 0-1.5.058l.347 9a.75.75 0 1 0 1.499-.058l-.346-9Zm5.48.058a.75.75 0 1 0-1.498-.058l-.347 9a.75.75 0 0 0 1.5.058l.345-9Z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {initialUsers.length === 0 && (
-              <tr>
-                <td colSpan={5} className="p-8 text-center text-slate-400">
-                  Belum ada user terdaftar.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </>
+                      <path
+                        fillRule="evenodd"
+                        d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </td>
+            </tr>
+          ))}
+          {users.length === 0 && (
+            <tr>
+              <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                Tidak ada user ditemukan.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }

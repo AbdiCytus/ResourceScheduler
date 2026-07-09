@@ -4,9 +4,10 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/login/actions";
-import { useState, useEffect } from "react";
-import { createClient } from "@/utils/supabase/client";
+import { useState } from "react";
 import ProfileModal from "./profile-modal";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useProfile } from "@/hooks/useProfile";
 
 export default function NavbarClient({ user, role }: { user: any; role: any }) {
   const pathname = usePathname();
@@ -16,66 +17,15 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
   const isHistoryActive = pathname === "/portal/history";
   const isPortalActive = pathname.startsWith("/portal") && !isHistoryActive;
 
-  const [unreadCount, setUnreadCount] = useState(0);
   const [showNotif, setShowNotif] = useState(false);
-  const [notifications, setNotifications] = useState<any[]>([]);
-
-  // State untuk Profile Modal & Data Profile Real
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [realUsername, setRealUsername] = useState("");
 
-  const supabase = createClient();
-
-  useEffect(() => {
-    if (!user) return;
-
-    // Fetch Notifikasi
-    const fetchNotif = async () => {
-      const { data } = await supabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("is_read", false)
-        .order("created_at", { ascending: false });
-
-      if (data) {
-        setNotifications(data);
-        setUnreadCount(data.length);
-      }
-    };
-
-    // Fetch Real Username dari tabel profiles
-    const fetchProfile = async () => {
-      const { data } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id", user.id)
-        .single();
-
-      if (data && data.username) {
-        setRealUsername(data.username);
-      } else {
-        // Fallback ke bagian depan email jika username kosong
-        setRealUsername(user.email?.split("@")[0] || "");
-      }
-    };
-
-    fetchNotif();
-    fetchProfile();
-
-    const interval = setInterval(fetchNotif, 30000);
-    return () => clearInterval(interval);
-  }, [user, supabase]);
+  const { unreadCount, notifications, markAsRead } = useNotifications(user?.id);
+  const { realUsername, realNim, realProdi } = useProfile(user);
 
   const handleReadNotif = async () => {
     setShowNotif(!showNotif);
-    if (unreadCount > 0) {
-      await supabase
-        .from("notifications")
-        .update({ is_read: true })
-        .eq("user_id", user.id);
-      setUnreadCount(0);
-    }
+    await markAsRead();
   };
 
   return (
@@ -86,6 +36,9 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
           onClose={() => setIsProfileOpen(false)}
           userEmail={user.email}
           initialUsername={realUsername}
+          initialNim={realNim}
+          initialProdi={realProdi}
+          role={role}
         />
       )}
 
@@ -189,16 +142,16 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                 )}
 
                 {/* Menu Riwayat */}
-                {user && role !== "kajur" && (
-                  <NavLink href="/portal/history" activePath={pathname} forceActive={isHistoryActive}>
-                    <span className="flex items-center gap-1.5">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                      </svg>
-                      Riwayat
-                    </span>
-                  </NavLink>
-                )}
+                {/* {user && role !== "kajur" && ( */}
+                <NavLink href="/portal/history" activePath={pathname} forceActive={isHistoryActive}>
+                  <span className="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                    </svg>
+                    Riwayat
+                  </span>
+                </NavLink>
+                {/* )} */}
               </div>
 
               {/* --- AREA PROFIL & NOTIFIKASI --- */}
@@ -286,16 +239,22 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
                   <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
                     <button
                       onClick={() => setIsProfileOpen(true)}
-                      className="hidden lg:flex flex-col items-end group cursor-pointer text-right"
+                      className="hidden lg:flex flex-row items-end group cursor-pointer text-right"
                       title="Klik untuk edit profil"
                     >
-                      <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition">
-                        {realUsername || user.email?.split("@")[0]}
-                      </span>
-                      <span className="text-[10px] uppercase tracking-wider font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full group-hover:bg-indigo-100 transition">
-                        {role}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-semibold text-slate-700 group-hover:text-indigo-600 transition">
+                          {realUsername || user.email?.split("@")[0]}
+                        </span>
+                        <span className="text-[8px] mt-1 uppercase tracking-wider font-bold text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-full group-hover:bg-indigo-100 transition">
+                          {role}
+                        </span>
+                      </div>
+                      {/* <div className="ml-3 px-4 py-2 hover:bg-indigo-50 rounded-full bg-indigo-100 text-md font-semibold text-slate-700 group-hover:text-indigo-600 transition">
+                        {realUsername.charAt(0).toUpperCase()}
+                      </div> */}
                     </button>
+
 
                     <form action={signOut}>
                       <button className="text-sm text-slate-500 hover:text-red-600 font-medium transition-colors px-3 py-2 hover:bg-red-50 rounded-lg">

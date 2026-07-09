@@ -62,7 +62,7 @@ export default async function SupervisorDashboard() {
         .from("schedules")
         .select("*", { count: "exact", head: true })
         .eq("status", "cancelled")
-        .ilike("description", "%Digeser%"),
+        .or('description.ilike.%Digeser%,description.ilike.%Ditimpa%'),
       supabase
         .from("system_settings")
         .select("value")

@@ -1,18 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createUser, approveUser, deleteUser } from "./actions";
-
-type UserProfile = {
-  id: string;
-  email: string;
-  full_name: string;
-  username: string;
-  role_id: number;
-  roles: { name: string } | null; // Join relation
-  is_approved: boolean;
-  created_at: string;
-};
+import { approveUser, deleteUser } from "./actions";
+import { UserProfile } from "@/types";
+import ConfirmModal from "@/components/confirm-modal";
+import CreateUserModal from "./create-user-modal";
+import UserTable from "./user-table";
 
 export default function UserManagement({
   initialUsers,
@@ -21,52 +14,21 @@ export default function UserManagement({
   initialUsers: UserProfile[];
   currentUserId: string;
 }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
 
-  // State untuk Modal Confirm/Alert (Kita reuse pola sebelumnya)
-  const [modal, setModal] = useState<{
+  type Modal = {
     isOpen: boolean;
     type: "alert" | "confirm" | "danger";
     title: string;
     message: string;
     onConfirm?: () => void;
-  }>({ isOpen: false, type: "alert", title: "", message: "" });
+  }
 
-  // Lock scroll saat modal apapun terbuka
-  const anyModalOpen = isModalOpen || modal.isOpen;
-  useEffect(() => {
-    document.body.style.overflow = anyModalOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [anyModalOpen]);
-
-  // HANDLER: TAMBAH USER
-  const handleCreateUser = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-
-    setIsLoading(true);
-    const result = await createUser(formData);
-    setIsLoading(false);
-
-    if (result?.error) {
-      setModal({
-        isOpen: true,
-        type: "alert",
-        title: "Gagal",
-        message: result.error,
-      });
-    } else {
-      setIsModalOpen(false);
-      setModal({
-        isOpen: true,
-        type: "alert",
-        title: "Berhasil",
-        message: "User baru berhasil ditambahkan.",
-      });
-    }
-  };
+  // State untuk Alert/Confirm Modals
+  const [modal, setModal] = useState<Modal>(
+    { isOpen: false, type: "alert", title: "", message: ""}
+  );
 
   // HANDLER: HAPUS USER
   const handleDeleteClick = (id: string, name: string) => {
@@ -86,7 +48,7 @@ export default function UserManagement({
             () =>
               setModal({
                 isOpen: true,
-                type: "alert",
+                type: "danger", // Gunakan ConfirmModal style
                 title: "Error",
                 message: result.error!,
               }),
@@ -102,12 +64,18 @@ export default function UserManagement({
     setIsLoading(true);
     const result = await approveUser(id);
     setIsLoading(false);
-    if (result?.error) alert(result.error);
+    if (result?.error) {
+      setModal({
+        isOpen: true,
+        type: "danger",
+        title: "Error",
+        message: result.error,
+      });
+    }
   };
 
   return (
     <div>
-      {/* HEADER: Judul + Tombol Tambah */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Manajemen User</h1>
@@ -116,9 +84,8 @@ export default function UserManagement({
           </p>
         </div>
 
-        {/* TOMBOL TAMBAH USER (Posisi di sebelah judul/header) */}
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => setIsCreateModalOpen(true)}
           className="btn-primary flex items-center gap-2 shadow-indigo-200"
         >
           <svg
@@ -133,261 +100,44 @@ export default function UserManagement({
         </button>
       </div>
 
-      {/* TABEL USER */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 border-b border-slate-100 text-xs uppercase text-slate-500 font-bold tracking-wider">
-            <tr>
-              <th className="px-6 py-4">Nama & Email</th>
-              <th className="px-6 py-4">Username</th>
-              <th className="px-6 py-4">Role</th>
-              <th className="px-6 py-4 text-center">Status</th>
-              <th className="px-6 py-4 text-right">Aksi</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {initialUsers.map((user) => (
-              <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-6 py-4">
-                  <div className="text-sm font-bold text-slate-900">
-                    {user.full_name || "Tanpa Nama"}
-                  </div>
-                  <div className="text-xs text-slate-500">{user.email}</div>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-600 font-mono">
-                  @{user.username || "-"}
-                </td>
-                <td className="px-6 py-4">
-                  <span
-                    className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${
-                      user.roles?.name === "admin"
-                        ? "bg-red-100 text-red-700"
-                        : user.roles?.name === "kajur"
-                        ? "bg-purple-100 text-purple-700"
-                        : user.roles?.name === "dosen"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-blue-100 text-blue-700" // mahasiswa
-                    }`}
-                  >
-                    {user.roles?.name || "Mahasiswa"}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-center">
-                  {user.is_approved ? (
-                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">
-                      Aktif
-                    </span>
-                  ) : (
-                    <button
-                      onClick={() => handleApproveClick(user.id)}
-                      disabled={isLoading}
-                      className="text-[10px] bg-orange-100 text-orange-700 hover:bg-orange-200 px-3 py-1 rounded-full font-bold border border-orange-200 transition"
-                    >
-                      {isLoading ? "..." : "Setujui?"}
-                    </button>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  {user.id !== currentUserId && (
-                    <button
-                      onClick={() => handleDeleteClick(user.id, user.full_name)}
-                      className="text-red-600 hover:bg-red-50 p-2 rounded transition"
-                      title="Hapus User"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        className="w-5 h-5"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <UserTable
+        users={initialUsers}
+        currentUserId={currentUserId}
+        onApprove={handleApproveClick}
+        onDelete={handleDeleteClick}
+        isLoading={isLoading}
+      />
 
-      {/* --- MODAL FORM CREATE USER --- */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-8 animate-in zoom-in duration-200">
-            <h2 className="text-xl font-bold mb-6 text-slate-800">
-              Tambah User Baru
-            </h2>
+      <CreateUserModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onSuccess={() => {
+          setModal({
+            isOpen: true,
+            type: "alert",
+            title: "Berhasil",
+            message: "User baru berhasil ditambahkan.",
+          });
+        }}
+        onError={(error) => {
+          setModal({
+            isOpen: true,
+            type: "danger",
+            title: "Gagal",
+            message: error,
+          });
+        }}
+      />
 
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                    Nama Lengkap
-                  </label>
-                  <input
-                    type="text"
-                    name="fullName"
-                    required
-                    placeholder="John Doe"
-                    className="w-full rounded-xl p-3"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                    Username
-                  </label>
-                  <input
-                    type="text"
-                    name="username"
-                    required
-                    placeholder="johndoe"
-                    className="w-full rounded-xl p-3"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                  Email
-                </label>
-                <input
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="user@company.com"
-                  className="w-full rounded-xl p-3"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                    Role
-                  </label>
-                  <select name="role" className="w-full rounded-xl p-3">
-                    <option value="mahasiswa">Mahasiswa</option>
-                    <option value="dosen">Dosen</option>
-                    <option value="kajur">Kajur (Ketua Jurusan)</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      name="password"
-                      type={showPassword ? "text" : "password"}
-                      required
-                      minLength={6}
-                      placeholder="Min. 6 karakter"
-                      className="w-full rounded-xl p-3 pr-10"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((v) => !v)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition"
-                      tabIndex={-1}
-                      title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
-                    >
-                      {showPassword ? (
-                        // Eye-slash icon
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
-                        </svg>
-                      ) : (
-                        // Eye icon
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg transition"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn-primary"
-                >
-                  {isLoading ? "Menyimpan..." : "Buat User"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* --- MODAL CONFIRM/ALERT --- */}
-      {modal.isOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl">
-            <div
-              className={`w-14 h-14 mx-auto mb-4 rounded-full flex items-center justify-center text-2xl ${
-                modal.type === "danger"
-                  ? "bg-red-50 text-red-500"
-                  : "bg-indigo-50 text-indigo-500"
-              }`}
-            >
-              {modal.type === "danger" ? "⚠️" : "ℹ️"}
-            </div>
-            <h3 className="text-xl font-bold mb-2 text-slate-900">
-              {modal.title}
-            </h3>
-            <p className="text-slate-500 text-sm mb-6">{modal.message}</p>
-            <div className="flex justify-center gap-3">
-              {(modal.type === "confirm" || modal.type === "danger") && (
-                <button
-                  onClick={() =>
-                    setModal((prev) => ({ ...prev, isOpen: false }))
-                  }
-                  className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 rounded-xl font-medium"
-                >
-                  Batal
-                </button>
-              )}
-              {modal.onConfirm ? (
-                <button
-                  onClick={modal.onConfirm}
-                  disabled={isLoading}
-                  className={`px-5 py-2.5 text-white rounded-xl font-bold shadow-lg ${
-                    modal.type === "danger"
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-indigo-600"
-                  }`}
-                >
-                  {isLoading ? "Memproses..." : "Ya, Lanjutkan"}
-                </button>
-              ) : (
-                <button
-                  onClick={() =>
-                    setModal((prev) => ({ ...prev, isOpen: false }))
-                  }
-                  className="bg-slate-800 text-white px-6 py-2.5 rounded-xl font-bold"
-                >
-                  Mengerti
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmModal
+        isOpen={modal.isOpen}
+        title={modal.title}
+        message={modal.message}
+        confirmLabel={modal.type === "alert" ? "Tutup" : "Ya, Lanjutkan"}
+        confirmVariant={modal.type === "danger" ? "danger" : "primary"}
+        onConfirm={modal.onConfirm || (() => setModal((prev) => ({ ...prev, isOpen: false })))}
+        onCancel={() => setModal((prev) => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 }

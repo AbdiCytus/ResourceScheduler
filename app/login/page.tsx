@@ -8,8 +8,12 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const message = searchParams.get("message");
 
+  const registerText = "Lengkapi data diri untuk mengakses sistem peminjaman Gedung H.";
+  const loginText = "Masuk untuk mengajukan peminjaman ruangan Gedung H.";
+
   // State untuk toggle Login/Register
   const [isRegister, setIsRegister] = useState(false);
+  const [isMahasiswa, setIsMahasiswa] = useState(true); // Default role is Mahasiswa
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -20,9 +24,7 @@ function LoginForm() {
             {isRegister ? "Buat Akun Baru" : "Selamat Datang"}
           </h2>
           <p className="text-slate-500 mb-8">
-            {isRegister
-              ? "Lengkapi data diri untuk mengakses sistem peminjaman Gedung H."
-              : "Masuk untuk mengajukan peminjaman ruangan Gedung H."}
+            {isRegister ? registerText : loginText}
           </p>
 
           {message && (
@@ -67,6 +69,9 @@ function LoginForm() {
                     <select
                       name="role"
                       required
+                      onChange={(e) =>
+                        setIsMahasiswa(e.target.value === "dosen")
+                      }
                       className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 p-3 bg-slate-50 appearance-none"
                     >
                       <option value="mahasiswa">Mahasiswa</option>
@@ -79,6 +84,37 @@ function LoginForm() {
                   <p className="text-[10px] text-slate-400 mt-1">
                     Role akan aktif setelah disetujui Admin.
                   </p>
+                </div>
+              </>
+            )}
+
+            {isRegister && isMahasiswa && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    NIM
+                  </label>
+                  <input
+                    type="text"
+                    name="nim"
+                    required
+                    className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 p-3 bg-slate-50 transition-all"
+                    placeholder="Masukkan NIM Anda"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Prodi
+                  </label>
+                  <select
+                    name="prodi"
+                    required
+                    className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 p-3 bg-slate-50 transition-all"
+                  >
+                    <option>Teknik Informatika</option>
+                    <option>SIKC</option>
+                    <option>Listrik</option>
+                  </select>
                 </div>
               </>
             )}
@@ -171,11 +207,13 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center bg-white text-slate-500">
-        Memuat halaman...
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-white text-slate-500">
+          Memuat halaman...
+        </div>
+      }
+    >
       <LoginForm />
     </Suspense>
   );

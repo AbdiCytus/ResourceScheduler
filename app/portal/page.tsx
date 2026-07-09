@@ -92,9 +92,10 @@ export default async function UserPortal({
         <div className="max-w-7xl mx-auto w-full mb-6">
           <h1 className="text-3xl font-bold text-slate-900">Portal Peminjaman</h1>
           <p className="text-slate-500 mt-1">
-            {isKajur
+            {/* {isKajur
               ? "Mode Pemantauan Kajur"
-              : "Pilih ruangan atau cek jadwal kegiatan."}
+              : "Pilih ruangan atau cek jadwal kegiatan."} */}
+              Pilih ruangan atau cek jadwal kegiatan.
           </p>
         </div>
 

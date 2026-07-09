@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { CancelButtonMonitoring } from "./cancel-button";
 
 const IconSearch = () => (
   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-slate-400">
@@ -40,6 +41,7 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterRole, setFilterRole] = useState("all");
+  const [filterRoom, setFilterRoom] = useState("all");
 
   const filtered = useMemo(() => {
     if (!Array.isArray(schedules)) return [];
@@ -55,7 +57,7 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
         rName.includes(searchTerm.toLowerCase()) ||
         actName.includes(searchTerm.toLowerCase());
 
-      const isPreempted = s.status === "cancelled" && s.description?.includes("Digeser");
+      const isPreempted = s.status === "cancelled" && (s.description?.includes("Digeser") || s.description?.includes("Ditimpa"));
       const matchStatus =
         filterStatus === "all" ||
         (filterStatus === "preempted" ? isPreempted : s.status === filterStatus);
@@ -101,6 +103,23 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
           />
         </div>
 
+        {/* Filter Ruangan (DEVELOPMENT) */}
+        {/* <div className="flex items-center gap-2 bg-slate-50 px-4 rounded-2xl shrink-0">
+          <IconFunnel />
+          <select
+            className="py-3 bg-transparent border-none text-sm cursor-pointer outline-none focus:ring-0 w-40"
+            value={filterRoom}
+            onChange={(e) => setFilterRoom(e.target.value)}
+          >
+            <option value="all">Semua Ruangan</option>
+            {schedules.map((r) => (
+              <option key={r.resources?.id} value={r.resources?.id}>
+                {r.resources?.name}
+              </option>
+            ))}
+          </select>
+        </div> */}
+
         {/* Filter Status */}
         <div className="flex items-center gap-2 bg-slate-50 px-4 rounded-2xl shrink-0">
           <IconFunnel />
@@ -111,7 +130,7 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
           >
             <option value="all">Semua Status</option>
             <option value="approved">Disetujui</option>
-            <option value="preempted">Digeser</option>
+            <option value="preempted">Ditimpa</option>
             <option value="cancelled">Dibatalkan</option>
           </select>
         </div>
@@ -125,9 +144,10 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
             onChange={(e) => setFilterRole(e.target.value)}
           >
             <option value="all">Semua Role</option>
-            <option value="mahasiswa">Mahasiswa</option>
-            <option value="dosen">Dosen</option>
             <option value="admin">Admin</option>
+            <option value="kajur">Kajur</option>
+            <option value="dosen">Dosen</option>
+            <option value="mahasiswa">Mahasiswa</option>
           </select>
         </div>
 
@@ -150,6 +170,7 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
                 <th className="py-5 px-6">Kegiatan</th>
                 <th className="py-5 px-6">Waktu</th>
                 <th className="py-5 px-6">Status</th>
+                <th className="py-5 px-6">Aksi</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-slate-50">
@@ -158,8 +179,9 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
                   const profile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
                   const uName = profile?.full_name || "User";
                   const uRole = profile?.roles?.name || "mahasiswa";
-                  const isPre = s.status === "cancelled" && s.description?.includes("Digeser");
+                  const isPre = s.status === "cancelled" && (s.description?.includes("Digeser") || s.description?.includes("Ditimpa"));
                   const activityName = s.activity_templates?.name || s.title || "-";
+                  const isNotPast = new Date(s.start_time) > new Date();
 
                   return (
                     <tr key={s.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -195,14 +217,18 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
                             Preempted
                           </div>
                         ) : (
-                          <span className={`text-[10px] font-black uppercase tracking-wider ${
-                            s.status === "approved" ? "text-emerald-500" : "text-slate-300"
-                          }`}>
+                          <span className={`text-[10px] font-black uppercase tracking-wider ${s.status === "approved" ? "text-emerald-500" : "text-slate-300"
+                            }`}>
                             {s.status}
                           </span>
                         )}
                         {isPre && s.description && (
                           <p className="text-[9px] text-slate-400 mt-1 max-w-[150px] leading-relaxed">{s.description}</p>
+                        )}
+                      </td>
+                      <td className="py-4 px-6">
+                        {s.status === "approved" && isNotPast && (
+                          <CancelButtonMonitoring scheduleId={s.id} />
                         )}
                       </td>
                     </tr>

@@ -144,7 +144,7 @@ export async function createBooking(prevState: any, formData: FormData) {
     .eq("id", user.id)
     .single();
   const userRole = (profile?.roles as any)?.name || "mahasiswa";
-  if (userRole === "kajur") return { error: "Kajur hanya memantau." };
+  // if (userRole === "kajur") return { error: "Kajur hanya memantau." };
 
   let roleWeight = parseInt(config["role_weight_mahasiswa"] || "20");
   if (userRole === "admin") roleWeight = parseInt(config["role_weight_admin"] || "30");
@@ -279,7 +279,7 @@ export async function createBooking(prevState: any, formData: FormData) {
         quantity,
         capacityLimit,
       );
-      let errorMsg = `❌ Slot penuh. Jadwal tidak bisa digeser (Kalah Skor / Freeze Time).`;
+      let errorMsg = `❌ Slot penuh. Jadwal tidak bisa ditimpa (Kalah Skor / Freeze Time).`;
       if (alternatives.length > 0)
         errorMsg += ` Rekomendasi terdekat: ${alternatives.join(", ")}`;
       return { error: errorMsg };
@@ -316,14 +316,14 @@ export async function createBooking(prevState: any, formData: FormData) {
         .from("schedules")
         .update({
           status: "cancelled",
-          rejection_reason: `Digeser otomatis oleh sistem (Kalah Prioritas).`,
+          rejection_reason: `Ditimpa otomatis oleh sistem (Kalah Prioritas).`,
         })
         .eq("id", v.id);
       await createNotification(
         supabase,
         v.user_id,
-        "Jadwal Digeser",
-        `Maaf, jadwal "${v.title}" terpaksa digeser karena urgensi sistem.`,
+        "Jadwal Dibatalkan Sistem",
+        `Maaf, jadwal "${v.title}" terpaksa dibatalkan karena urgensi sistem.`,
         "warning",
       );
     }
@@ -353,7 +353,7 @@ export async function createBooking(prevState: any, formData: FormData) {
   if (preemptedVictims.length > 0)
     return {
       success:
-        "⚠️ SUKSES PREEMPTION: Jadwal prioritas rendah berhasil digeser.",
+        "Jadwal prioritas rendah berhasil ditimpa.",
     };
   return { success: "Berhasil! Jadwal telah dibuat." };
 }

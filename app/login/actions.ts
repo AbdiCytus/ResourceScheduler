@@ -84,20 +84,39 @@ export async function signup(formData: FormData) {
   const fullName = formData.get("fullName") as string;
   const username = formData.get("username") as string;
   const roleString = formData.get("role") as string;
+  const nim = ((formData.get("nim") as string) || "").trim();
+  const prodi = ((formData.get("prodi") as string) || "").trim();
+  const isMahasiswa = roleString === "mahasiswa";
 
   // Default ke User (2) jika role tidak valid
   const roleId = ROLE_MAP[roleString] || 2;
+
+  if (isMahasiswa && (!nim || !prodi)) {
+    return redirect("/login?message=Gagal: NIM dan Prodi wajib diisi untuk mahasiswa.");
+  }
 
   // 1. Cek Username Unik
   const { data: existingUser } = await supabase
     .from("profiles")
     .select("username")
     .eq("username", username)
-    .single();
+    .maybeSingle();
+
+  const { data: existingNIMUser } = await supabase
+    .from("profiles")
+    .select("nim")
+    .eq("nim", nim)
+    .maybeSingle();
 
   if (existingUser) {
     return redirect(
       `/login?message=Gagal: Username '${username}' sudah dipakai.`
+    );
+  }
+
+  if (isMahasiswa && existingNIMUser) {
+    return redirect(
+      `/login?message=Gagal: NIM '${formData.get("nim")}' sudah terdaftar.`
     );
   }
 
@@ -111,6 +130,8 @@ export async function signup(formData: FormData) {
         full_name: fullName,
         username: username,
         role_id: roleId,
+        nim: isMahasiswa ? nim : null,
+        prodi: isMahasiswa ? prodi : null,
       },
     },
   });
@@ -132,6 +153,8 @@ export async function signup(formData: FormData) {
         username: username,
         role_id: roleId,
         email: email, // Pastikan email juga tersimpan di profiles
+        nim: isMahasiswa ? nim : null,
+        prodi: isMahasiswa ? prodi : null,
         is_approved: false, // Default Pending
       })
       .eq("id", data.user.id);
@@ -142,6 +165,8 @@ export async function signup(formData: FormData) {
       // Biarkan lanjut, nanti Admin bisa edit manual jika perlu.
     }
   }
+
+  await supabase.auth.signOut();
 
   return redirect(
     "/login?message=Registrasi berhasil! Silakan tunggu persetujuan Admin."

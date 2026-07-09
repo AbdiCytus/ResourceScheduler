@@ -8,6 +8,9 @@ type ProfileModalProps = {
   onClose: () => void;
   userEmail: string;
   initialUsername: string;
+  initialNim?: string;
+  initialProdi?: string;
+  role?: string;
 };
 
 export default function ProfileModal({
@@ -15,6 +18,9 @@ export default function ProfileModal({
   onClose,
   userEmail,
   initialUsername,
+  initialNim,
+  initialProdi,
+  role,
 }: ProfileModalProps) {
   const [state, formAction, isPending] = useActionState(updateProfile, null);
 
@@ -108,9 +114,41 @@ export default function ProfileModal({
               name="username"
               defaultValue={initialUsername}
               placeholder="Username baru..."
-              className="w-full rounded-xl p-3 focus:ring-2 focus:ring-indigo-500"
+              className="w-full rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 border border-slate-200"
             />
           </div>
+
+          {/* Role: Mahasiswa -> NIM & Prodi */}
+          {role === "mahasiswa" && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                  NIM
+                </label>
+                <input
+                  type="text"
+                  name="nim"
+                  defaultValue={initialNim}
+                  placeholder="Masukkan NIM..."
+                  className="w-full rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 border border-slate-200"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">
+                  Prodi
+                </label>
+                <select
+                  name="prodi"
+                  defaultValue={initialProdi}
+                  className="w-full rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 border border-slate-200"
+                >
+                  <option>Teknik Informatika</option>
+                  <option>SIKC</option>
+                  <option>Listrik</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           <hr className="border-slate-100 my-2" />
           <p className="text-xs text-slate-400 italic">
