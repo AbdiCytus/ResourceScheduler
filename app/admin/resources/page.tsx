@@ -5,7 +5,7 @@ export default async function ResourcesPage() {
   const supabase = await createClient();
 
   // 1. Ambil semua data resource, jadwal kuliah, dan dosen
-  const [{ data: resources }, { data: teachingSchedules }, { data: dosenRole }] = await Promise.all([
+  const [{ data: resources }, { data: teachingSchedules }, { data: profilesWithRoles }] = await Promise.all([
     supabase
       .from("resources")
       .select("*")
@@ -16,22 +16,16 @@ export default async function ResourcesPage() {
       .order("day_of_week")
       .order("start_time"),
     supabase
-      .from("roles")
-      .select("id")
-      .eq("name", "dosen")
-      .single(),
+      .from("profiles")
+      .select("full_name, roles!inner(name)")
+      .in("roles.name", ["dosen", "kajur"])
+      .order("full_name"),
   ]);
 
-  // Ambil list dosen berdasarkan role_id
-  let dosenList: string[] = [];
-  if (dosenRole?.id) {
-    const { data: dosenProfiles } = await supabase
-      .from("profiles")
-      .select("full_name")
-      .eq("role_id", dosenRole.id)
-      .order("full_name");
-    dosenList = (dosenProfiles || []).map((p) => p.full_name).filter(Boolean);
-  }
+  // Ekstrak nama-nama dosen & kajur
+  const dosenList = (profilesWithRoles || [])
+    .map((p) => p.full_name)
+    .filter(Boolean);
 
   // 3. Filter Data untuk Tampilan UI (Hanya tampilkan resource yang aktif / belum di-soft delete)
   const now = new Date();
