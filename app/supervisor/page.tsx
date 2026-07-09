@@ -128,7 +128,7 @@ export default async function SupervisorDashboard() {
             bg="bg-violet-50"
           />
           <StatCard
-            title="Insiden Preemption"
+            title="Insiden Pembatalan"
             value={preempted.count || 0}
             icon={<IconExclamation />}
             color="text-rose-600"
