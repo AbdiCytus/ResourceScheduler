@@ -14,6 +14,7 @@ function LoginForm() {
   // State untuk toggle Login/Register
   const [isRegister, setIsRegister] = useState(false);
   const [isMahasiswa, setIsMahasiswa] = useState(true); // Default role is Mahasiswa
+  const [isDosen, setIsDosen] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-white">
@@ -69,9 +70,10 @@ function LoginForm() {
                     <select
                       name="role"
                       required
-                      onChange={(e) =>
-                        setIsMahasiswa(e.target.value === "mahasiswa")
-                      }
+                      onChange={(e) => {
+                        setIsMahasiswa(e.target.value === "mahasiswa");
+                        setIsDosen(e.target.value === "dosen");
+                      }}
                       className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 p-3 bg-slate-50 appearance-none"
                     >
                       <option value="mahasiswa">Mahasiswa</option>
@@ -118,6 +120,23 @@ function LoginForm() {
                 </div>
               </>
             )}
+
+            {/* {isRegister && isDosen && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    NIP
+                  </label>
+                  <input
+                    type="text"
+                    name="nip"
+                    required
+                    className="w-full rounded-xl border-slate-200 focus:ring-2 focus:ring-indigo-500 p-3 bg-slate-50 transition-all"
+                    placeholder="Masukkan NIP Anda"
+                  />
+                </div>
+              </>
+            )} */}
 
             {/* Field Login (Email/Username) vs Register (Email Only) */}
             <div>

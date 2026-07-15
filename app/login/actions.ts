@@ -86,7 +86,9 @@ export async function signup(formData: FormData) {
   const roleString = formData.get("role") as string;
   const nim = ((formData.get("nim") as string) || "").trim();
   const prodi = ((formData.get("prodi") as string) || "").trim();
+  // const nip = ((formData.get("nip") as string) || "").trim();
   const isMahasiswa = roleString === "mahasiswa";
+  // const isDosen = roleString === "dosen";
 
   // Default ke User (2) jika role tidak valid
   const roleId = ROLE_MAP[roleString] || 2;
@@ -94,6 +96,10 @@ export async function signup(formData: FormData) {
   if (isMahasiswa && (!nim || !prodi)) {
     return redirect("/login?message=Gagal: NIM dan Prodi wajib diisi untuk mahasiswa.");
   }
+
+  // if (isDosen && !nip) {
+  //   return redirect("/login?message=Gagal: NIP wajib diisi untuk dosen.");
+  // }
 
   // 1. Cek Username Unik
   const { data: existingUser } = await supabase
@@ -108,6 +114,12 @@ export async function signup(formData: FormData) {
     .eq("nim", nim)
     .maybeSingle();
 
+  // const { data: existingNIPUser } = await supabase
+  //   .from("profiles")
+  //   .select("nip")
+  //   .eq("nip", nip)
+  //   .maybeSingle();
+
   if (existingUser) {
     return redirect(
       `/login?message=Gagal: Username '${username}' sudah dipakai.`
@@ -119,6 +131,12 @@ export async function signup(formData: FormData) {
       `/login?message=Gagal: NIM '${formData.get("nim")}' sudah terdaftar.`
     );
   }
+
+  // if (isDosen && existingNIPUser) {
+  //   return redirect(
+  //     `/login?message=Gagal: NIP '${formData.get("nip")}' sudah terdaftar.`
+  //   );
+  // }
 
   // 2. Daftar ke Supabase Auth
   const { error, data } = await supabase.auth.signUp({
@@ -132,6 +150,7 @@ export async function signup(formData: FormData) {
         role_id: roleId,
         nim: isMahasiswa ? nim : null,
         prodi: isMahasiswa ? prodi : null,
+        // nip: isDosen ? nip : null,
       },
     },
   });
@@ -155,6 +174,7 @@ export async function signup(formData: FormData) {
         email: email, // Pastikan email juga tersimpan di profiles
         nim: isMahasiswa ? nim : null,
         prodi: isMahasiswa ? prodi : null,
+        // nip: isDosen ? nip : null,
         is_approved: false, // Default Pending
       })
       .eq("id", data.user.id);

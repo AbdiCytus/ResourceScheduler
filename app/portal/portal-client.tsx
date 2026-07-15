@@ -28,6 +28,7 @@ type Props = {
   closureDates: string[];
   isSupervisor: boolean;
   settings: Record<string, string>;
+  mengajar: any[];
 };
 
 export default function PortalClient({
@@ -37,11 +38,12 @@ export default function PortalClient({
   closureDates,
   isSupervisor,
   settings,
+  mengajar,
 }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState<"resources" | "schedule">(
+  const [activeTab, setActiveTab] = useState<"resources" | "schedule" | "mengajar">(
     "resources",
   );
   const [searchTerm, setSearchTerm] = useState("");
@@ -138,7 +140,7 @@ export default function PortalClient({
   return (
     <div className="space-y-6">
       {/* TABS NAVIGATION */}
-      <div className="bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 grid grid-cols-2 gap-1">
+      <div className={`bg-slate-100 p-1.5 rounded-2xl w-full border border-slate-200 grid gap-1 grid-cols-2`}>
         <button
           onClick={() => setActiveTab("resources")}
           className={`py-3 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === "resources" ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-600"}`}
@@ -179,6 +181,30 @@ export default function PortalClient({
           </svg>
           Kalender Jadwal
         </button>
+        
+        {/* TAB MENGAJAR (DEVELOPMENT) - DISABLED */}
+        {/* {mengajar.length > 0 && (
+          <button
+            onClick={() => setActiveTab("mengajar")}
+            className={`py-3 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${activeTab === "mengajar" ? "bg-white text-indigo-600 shadow-sm ring-1 ring-slate-200" : "text-slate-500 hover:bg-slate-200/50 hover:text-slate-600"}`}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={2}
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+              />
+            </svg>
+            Jadwal Mengajar
+          </button>
+        )} */}
       </div>
 
       {activeTab === "resources" && (
@@ -266,28 +292,26 @@ export default function PortalClient({
               const statusBadge = isMaintenance
                 ? { label: "MAINTENANCE", cls: "bg-red-100 text-red-600 border-red-200" }
                 : isClosingDown
-                ? { label: "SEGERA DIHAPUS", cls: "bg-red-100 text-red-600 border-red-200" }
-                : isInactive
-                ? { label: "NON-AKTIF", cls: "bg-slate-200 text-slate-500 border-slate-300" }
-                : roomStatus === "berlangsung"
-                ? { label: "🔴 Sedang Berlangsung", cls: "bg-rose-50 text-rose-600 border-rose-200" }
-                : roomStatus === "nonaktif"
-                ? { label: "⚫ Nonaktif", cls: "bg-slate-100 text-slate-500 border-slate-200" }
-                : { label: "🟢 Kosong", cls: "bg-emerald-50 text-emerald-600 border-emerald-200" };
+                  ? { label: "SEGERA DIHAPUS", cls: "bg-red-100 text-red-600 border-red-200" }
+                  : isInactive
+                    ? { label: "NON-AKTIF", cls: "bg-slate-200 text-slate-500 border-slate-300" }
+                    : roomStatus === "berlangsung"
+                      ? { label: "🔴 Sedang Berlangsung", cls: "bg-rose-50 text-rose-600 border-rose-200" }
+                      : roomStatus === "nonaktif"
+                        ? { label: "⚫ Nonaktif", cls: "bg-slate-100 text-slate-500 border-slate-200" }
+                        : { label: "🟢 Kosong", cls: "bg-emerald-50 text-emerald-600 border-emerald-200" };
 
               return (
                 <div
                   key={res.id}
-                  className={`bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between transition hover:shadow-md ${
-                    isDisabled ? "opacity-75 grayscale bg-slate-50" :
-                    roomStatus === "berlangsung" ? "border-rose-200" : ""
-                  }`}
+                  className={`bg-white rounded-2xl p-5 shadow-sm border border-slate-100 flex flex-col justify-between transition hover:shadow-md ${isDisabled ? "opacity-75 grayscale bg-slate-50" :
+                      roomStatus === "berlangsung" ? "border-rose-200" : ""
+                    }`}
                 >
                   <div>
                     <div className="flex justify-between items-start mb-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl border ${
-                        res.type === "Room" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-orange-50 text-orange-600 border-orange-100"
-                      }`}>
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl border ${res.type === "Room" ? "bg-indigo-50 text-indigo-600 border-indigo-100" : "bg-orange-50 text-orange-600 border-orange-100"
+                        }`}>
                         {res.type === "Room" ? "🏢" : "💻"}
                       </div>
                       <span className={`text-[9px] font-bold px-2 py-1 rounded-full border ${statusBadge.cls}`}>
@@ -326,27 +350,26 @@ export default function PortalClient({
                     </p>
                   </div>
 
-                  {/* {isSupervisor ? (
+                  {isSupervisor ? (
                     <button disabled className="w-full bg-slate-50 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed">
                       Mode Pantau
                     </button>
-                  ) : */
-                   isDisabled ? (
-                    <button disabled className="w-full bg-slate-100 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed">
-                      {isMaintenance ? "Booking Ditutup" : "Tidak Tersedia"}
-                    </button>
-                  ) : (
-                    <Link
-                      href={`/portal/book/${res.id}`}
-                      className={`block text-center font-bold py-2 rounded-lg text-xs mt-4 transition border ${
-                        roomStatus === "berlangsung"
-                          ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white"
-                          : "bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white"
-                      }`}
-                    >
-                      {roomStatus === "berlangsung" ? "Lihat Jadwal →" : "Pinjam Ruangan →"}
-                    </Link>
-                  )}
+                  ) :
+                    isDisabled ? (
+                      <button disabled className="w-full bg-slate-100 text-slate-400 font-bold py-2 rounded-lg text-xs border border-slate-200 cursor-not-allowed">
+                        {isMaintenance ? "Booking Ditutup" : "Tidak Tersedia"}
+                      </button>
+                    ) : (
+                      <Link
+                        href={`/portal/book/${res.id}`}
+                        className={`block text-center font-bold py-2 rounded-lg text-xs mt-4 transition border ${roomStatus === "berlangsung"
+                            ? "bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white"
+                            : "bg-white border-indigo-200 text-indigo-600 hover:bg-indigo-600 hover:text-white"
+                          }`}
+                      >
+                        {roomStatus === "berlangsung" ? "Lihat Jadwal →" : "Pinjam Ruangan →"}
+                      </Link>
+                    )}
                 </div>
               );
             })}
@@ -398,9 +421,8 @@ export default function PortalClient({
                     </p>
                     <div className="grid grid-cols-2 gap-1.5">
                       {teachingOnSelectedDay.map((t: any) => (
-                        <div key={t.id} className={`flex items-center justify-between rounded-lg px-3 py-2 border ${
-                          t.is_offline ? "bg-amber-50 border-amber-100" : "bg-slate-50 border-slate-100 opacity-60"
-                        }`}>
+                        <div key={t.id} className={`flex items-center justify-between rounded-lg px-3 py-2 border ${t.is_offline ? "bg-amber-50 border-amber-100" : "bg-slate-50 border-slate-100 opacity-60"
+                          }`}>
                           <div className="min-w-0 mr-2">
                             <p className="text-[10px] font-bold text-amber-800 truncate">{t.matakuliah} – {t.kelas}</p>
                             <p className="text-[9px] text-amber-600 truncate">{t.dosen_pengampu} · 🏢 {t.resources?.name}</p>
@@ -489,9 +511,8 @@ export default function PortalClient({
                     );
                   })
                 ) : (
-                  <div className={`h-full flex flex-col items-center justify-center text-slate-300 py-10 ${
-                    teachingOnSelectedDay.length > 0 ? "" : "h-full"
-                  }`}>
+                  <div className={`h-full flex flex-col items-center justify-center text-slate-300 py-10 ${teachingOnSelectedDay.length > 0 ? "" : "h-full"
+                    }`}>
                     <div className="text-4xl mb-2">📅</div>
                     <p className="text-sm font-medium">Tidak ada booking peminjaman pada tanggal ini.</p>
                   </div>
@@ -501,6 +522,81 @@ export default function PortalClient({
           </div>
         </div>
       )}
+
+      {/* TAB MENGAJAR (DEVELOPMENT) - DISABLED */}
+      {/* {mengajar.length > 0 && activeTab === "mengajar" && (
+        <div>
+          <div className="grid gap-4">
+            <div className="overflow-x-auto bg-white rounded-2xl shadow-sm border border-slate-200">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50/70">
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider min-w-[160px]">Hari & Jam</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider min-w-[200px]">Mata Kuliah & Kelas</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider min-w-[160px]">Ruangan</th>
+                    <th className="px-6 py-3 text-left text-xs font-bold text-slate-600 uppercase tracking-wider min-w-[120px]">Status</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {mengajar.length > 0 ? (
+                    mengajar.map((item: any) => {
+                      const day = DAY_NAMES[item.day_of_week] || "";
+                      const status = getRoomStatus(item.resource_id);
+                      const isToday = item.day_of_week === new Date().getDay();
+                      const statusLabel = status === "berlangsung" ? "Sedang Mengajar" : isToday ? "Offline" : "Menanti";
+                      const isOffline = item.is_offline;
+                      const active = status === "berlangsung";
+
+                      return (
+                        <tr key={`${item.course_name}-${item.start_time}`} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-2 text-slate-800">
+                              <span className="font-semibold text-slate-900 whitespace-nowrap">{day}</span>
+                              <span className="text-sm">{item.start_time.slice(0, 5)} - {item.end_time.slice(0, 5)}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-3">
+                            <div className="font-medium text-slate-800">{item.matakuliah}</div>
+                            {item.kelas && (
+                              <div className="text-xs text-slate-500">Kelas: {item.kelas}</div>
+                            )}
+                          </td>
+                          <td className="px-6 py-3">
+                            <div className="font-medium text-slate-800">{item.resources?.name}</div>
+                          </td>
+                          <td className="px-6 py-3">
+                            {isOffline ? (
+                              <span className={`px-2 py-1 rounded-lg text-[10px] font-bold tracking-wider ${active
+                                ? "bg-red-100 text-red-700 border border-red-200"
+                                : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                                }`}>
+                                {statusLabel}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 rounded-lg text-[10px] font-bold tracking-wider bg-slate-100 text-slate-500 border border-slate-200">
+                                Daring
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-12 text-center">
+                        <div className="flex flex-col items-center">
+                          <div className="text-5xl mb-2 text-slate-400">📭</div>
+                          <p className="text-slate-600 font-medium">Tidak ada jadwal mengajar.</p>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )} */}
     </div>
   );
 }

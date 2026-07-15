@@ -23,6 +23,16 @@ export default async function BookResourcePage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+  
+  const { data: kajur } = await supabase
+    .from("profiles")
+    .select("roles(name)")
+    .eq("id", user.id)
+    .single();
+
+  const isKajur = (kajur?.roles as any)?.name === "kajur";
+
+  if(isKajur) redirect("/portal");
 
   // Cek apakah hari ini Sabtu (6) atau Minggu (0) → blok akses
   const todayDay = new Date().getDay();

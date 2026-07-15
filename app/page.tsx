@@ -1,7 +1,13 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { createClient } from "@/utils/supabase/server";
 
-export default function Home() {
+export default async function Home() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) redirect("/portal");
+  
   return (
     <div className="relative overflow-hidden bg-slate-50 min-h-screen">
       {/* Background Blobs */}

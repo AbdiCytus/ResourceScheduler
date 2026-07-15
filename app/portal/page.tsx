@@ -12,6 +12,36 @@ async function getSettings(supabase: any) {
   return settings;
 }
 
+async function getJadwalMengajar(userId: string, supabase: any) {
+  // Cek role user
+  const { data: userRole } = await supabase
+    .from("profiles")
+    .select("roles(name)")
+    .eq("id", userId)
+    .single();
+
+  // Jika bukan dosen, berikan data kosong
+  if (userRole?.roles.name !== "dosen") return [];
+
+  // Ambil nama lengkap dosen
+  const { data: userFullName } = await supabase
+    .from("profiles")
+    .select("full_name")
+    .eq("id", userId)
+    .single();
+
+  // Ambil jadwal mengajar dosen
+  const { data } = await supabase
+    .from("teaching_schedules")
+    .select("*, resources(name)")
+    .eq("dosen_pengampu", userFullName?.full_name)
+    .order("day_of_week")
+    .order("start_time");
+  
+  // Return jadwal mengajar
+  return data;
+}
+
 export default async function UserPortal({
   searchParams,
 }: {
@@ -23,6 +53,9 @@ export default async function UserPortal({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
+
+  // Ambil jadwal mengajar
+  const mengajar = await getJadwalMengajar(user.id, supabase);
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -70,6 +103,13 @@ export default async function UserPortal({
     .gte("date", new Date().toISOString().split("T")[0]);
 
   const closureDates = (buildingClosures || []).map((c: any) => c.date);
+  const activeResourceIds = resources.map((res) => res.id);
+
+  const activeSchedules = allSchedules?.filter((schedule) => activeResourceIds.includes(schedule.resource_id)) || [];
+  const activeTeachingSchedules = allTeachingSchedules?.filter((schedule) => 
+    activeResourceIds.includes(schedule.resource_id)
+  ) || [];
+  
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -92,18 +132,18 @@ export default async function UserPortal({
         <div className="max-w-7xl mx-auto w-full mb-6">
           <h1 className="text-3xl font-bold text-slate-900">Portal Peminjaman</h1>
           <p className="text-slate-500 mt-1">
-            {/* {isKajur
+            {isKajur
               ? "Mode Pemantauan Kajur"
-              : "Pilih ruangan atau cek jadwal kegiatan."} */}
-              Pilih ruangan atau cek jadwal kegiatan.
+              : "Pilih ruangan atau cek jadwal kegiatan."}
           </p>
         </div>
 
         <div className="max-w-7xl mx-auto w-full flex-1">
           <PortalClient
+            mengajar={mengajar}
             resources={resources}
-            schedules={allSchedules || []}
-            teachingSchedules={allTeachingSchedules || []}
+            schedules={activeSchedules || []}
+            teachingSchedules={activeTeachingSchedules || []}
             closureDates={closureDates}
             isSupervisor={isKajur}
             settings={settings}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { approveUser, deleteUser } from "./actions";
 import { UserProfile } from "@/types";
 import ConfirmModal from "@/components/confirm-modal";
@@ -17,6 +17,22 @@ export default function UserManagement({
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // const [searchTerm, setSearchTerm] = useState("");
+  // const [roleFilter, setRoleFilter] = useState('all');
+
+  // const filteredUsers = useMemo(() => {
+  //   return initialUsers.filter((user) => {
+  //     const matchesRole = roleFilter === 'all' || user.roles?.name === roleFilter;
+  //     const searchLower = searchTerm.toLowerCase();
+  //     const matchesSearch =
+  //       (user.full_name?.toLowerCase().includes(searchLower)) ||
+  //       (user.email.toLowerCase().includes(searchLower)) ||
+  //       (user.username?.toLowerCase().includes(searchLower)) ||
+  //       (user.nim?.toLowerCase().includes(searchLower));
+  //     return matchesSearch && matchesRole;
+  //   });
+  // }, [initialUsers, searchTerm, roleFilter]);
+
   type Modal = {
     isOpen: boolean;
     type: "alert" | "confirm" | "danger";
@@ -27,7 +43,7 @@ export default function UserManagement({
 
   // State untuk Alert/Confirm Modals
   const [modal, setModal] = useState<Modal>(
-    { isOpen: false, type: "alert", title: "", message: ""}
+    { isOpen: false, type: "alert", title: "", message: "" }
   );
 
   // HANDLER: HAPUS USER
@@ -99,6 +115,29 @@ export default function UserManagement({
           <span className="font-bold">Tambah User</span>
         </button>
       </div>
+
+      {/* <div className="flex gap-4 mb-6">
+        <input
+          type="search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Cari user..."
+          className="border border-slate-300 rounded-lg px-4 py-2 w-full max-w-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+
+        <select
+          value={roleFilter}
+          onChange={(e) => setRoleFilter(e.target.value)}
+          className="border border-slate-300 rounded-lg px-4 py-2 w-[12%] max-w-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="all">Semua Role</option>
+          <option value="admin">Admin</option>
+          <option value="kajur">Kajur</option>
+          <option value="dosen">Dosen</option>
+          <option value="mahasiswa">Mahasiswa</option>
+
+        </select>
+      </div> */}
 
       <UserTable
         users={initialUsers}
