@@ -10,6 +10,7 @@ type ProfileModalProps = {
   initialUsername: string;
   initialNim?: string;
   initialProdi?: string;
+  initialKelas?: string;
   role?: string;
 };
 
@@ -20,6 +21,7 @@ export default function ProfileModal({
   initialUsername,
   initialNim,
   initialProdi,
+  initialKelas,
   role,
 }: ProfileModalProps) {
   const [state, formAction, isPending] = useActionState(updateProfile, null);
@@ -117,6 +119,20 @@ export default function ProfileModal({
               className="w-full rounded-xl p-3 focus:ring-2 focus:ring-indigo-500 border border-slate-200"
             />
           </div>
+
+          {role == "mahasiswa" && (
+            <div>
+              <label className="text-xs font-bold text-slate-500 uppercase mb-2">
+                Kelas
+              </label>
+              <input
+                type="text"
+                name="kelas"
+                defaultValue={initialKelas}
+                className="w-full rounded-xl p-3 border-slate-200 focus:ring-2 focus:ring-indigo-500"
+              />
+            </div>
+          )}
 
           {/* Role: Mahasiswa -> NIM & Prodi */}
           {role === "mahasiswa" && (

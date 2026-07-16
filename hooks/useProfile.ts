@@ -5,6 +5,7 @@ export function useProfile(user?: any) {
   const [realUsername, setRealUsername] = useState("");
   const [realNim, setRealNim] = useState("");
   const [realProdi, setRealProdi] = useState("");
+  const [realKelas, setRealKelas] = useState("");
   const supabase = createClient();
 
   useEffect(() => {
@@ -13,7 +14,7 @@ export function useProfile(user?: any) {
     const fetchProfile = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("username, nim, prodi")
+        .select("username, nim, prodi, kelas")
         .eq("id", user.id)
         .single();
 
@@ -21,6 +22,7 @@ export function useProfile(user?: any) {
         setRealUsername(data.username || user.email?.split("@")[0] || "");
         if (data.nim) setRealNim(data.nim);
         if (data.prodi) setRealProdi(data.prodi);
+        if (data.kelas) setRealKelas(data.kelas);
       } else {
         setRealUsername(user.email?.split("@")[0] || "");
       }
@@ -29,5 +31,5 @@ export function useProfile(user?: any) {
     fetchProfile();
   }, [user, supabase]);
 
-  return { realUsername, realNim, realProdi };
+  return { realUsername, realNim, realProdi, realKelas };
 }

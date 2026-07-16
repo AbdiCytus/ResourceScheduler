@@ -21,7 +21,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const { unreadCount, notifications, markAsRead } = useNotifications(user?.id);
-  const { realUsername, realNim, realProdi } = useProfile(user);
+  const { realUsername, realNim, realProdi, realKelas } = useProfile(user);
 
   const handleReadNotif = async () => {
     setShowNotif(!showNotif);
@@ -38,6 +38,7 @@ export default function NavbarClient({ user, role }: { user: any; role: any }) {
           initialUsername={realUsername}
           initialNim={realNim}
           initialProdi={realProdi}
+          initialKelas={realKelas}
           role={role}
         />
       )}

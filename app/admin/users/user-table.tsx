@@ -26,6 +26,7 @@ export default function UserTable({
             <th className="px-6 py-4">Username</th>
             <th className="px-6 py-4">Role</th>
             <th className="px-6 py-4">NIM & Prodi</th>
+            <th className="px-6 py-4">Kelas</th>
             <th className="px-6 py-4 text-center">Status</th>
             <th className="px-6 py-4 text-right">Aksi</th>
           </tr>
@@ -65,6 +66,15 @@ export default function UserTable({
                   </div>
                 ) : (
                   <span className="text-slate-400 italic">Role tidak menggunakan NIM & Prodi</span>
+                )}
+              </td>
+              <td className="px-6 py-4 text-sm text-slate-600">
+                {user.roles?.name === "mahasiswa" || user.role_id === 2 ? (
+                  <div>
+                    <div className="font-bold text-slate-900">{user.kelas || "-"}</div>
+                  </div>
+                ) : (
+                  <span className="text-slate-400 italic">Role tidak menggunakan Kelas</span>
                 )}
               </td>
               <td className="px-6 py-4 text-center">

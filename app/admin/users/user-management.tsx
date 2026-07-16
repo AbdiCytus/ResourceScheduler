@@ -32,6 +32,16 @@ export default function UserManagement({
   //     return matchesSearch && matchesRole;
   //   });
   // }, [initialUsers, searchTerm, roleFilter]);
+  // const [currentPage, setCurrentPage] = useState(1);
+  // const ITEMS_PER_PAGE = 10;
+
+  // const sourceData = initialUsers;
+
+  // const totalPages = Math.ceil(sourceData.length / ITEMS_PER_PAGE);
+  // const paginatedUsers = useMemo(() => {
+  //   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  //   return sourceData.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  // }, [sourceData, currentPage]);
 
   type Modal = {
     isOpen: boolean;
@@ -146,6 +156,33 @@ export default function UserManagement({
         onDelete={handleDeleteClick}
         isLoading={isLoading}
       />
+
+      {/* {totalPages > 1 && (
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4 mt-6 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+          <p className="text-sm text-slate-500 font-medium">
+            Menampilkan halaman <span className="font-bold text-slate-900">{currentPage}</span> dari {totalPages}
+            <span className="ml-2">(Total {sourceData.length} user)</span>
+          </p>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 text-sm font-bold bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+            >
+              ← Sebelumnya
+            </button>
+            <button
+              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 text-sm font-bold bg-white border border-slate-200 text-slate-700 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+            >
+              Selanjutnya →
+            </button>
+          </div>
+        </div>
+      )} */}
+
 
       <CreateUserModal
         isOpen={isCreateModalOpen}

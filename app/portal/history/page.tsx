@@ -38,7 +38,8 @@ export default async function HistoryPage() {
       activity_templates (name, weight)
     `)
     .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(20);
 
   const total = schedules?.length || 0;
   const approved = schedules?.filter((s) => s.status === "approved").length || 0;

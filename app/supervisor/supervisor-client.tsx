@@ -43,6 +43,9 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
   const [filterRole, setFilterRole] = useState("all");
   const [filterRoom, setFilterRoom] = useState("all");
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
+
   const filtered = useMemo(() => {
     if (!Array.isArray(schedules)) return [];
     return schedules.filter((s) => {
@@ -68,6 +71,15 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
       return matchSearch && matchStatus && matchRole;
     });
   }, [schedules, searchTerm, filterStatus, filterRole]);
+
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterRole]);
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
 
   const handleExport = () => {
     const headers = "ID,Tanggal,User,Role,Ruangan,Kegiatan,Status,Keterangan\n";
@@ -174,8 +186,8 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-slate-50">
-              {filtered.length > 0 ? (
-                filtered.map((s) => {
+              {paginatedData.length > 0 ? (
+                paginatedData.map((s) => {
                   const profile = Array.isArray(s.profiles) ? s.profiles[0] : s.profiles;
                   const uName = profile?.full_name || "User";
                   const uRole = profile?.roles?.name || "mahasiswa";
@@ -250,6 +262,31 @@ export default function SupervisorClient({ schedules = [] }: { schedules: any[] 
             Menampilkan {filtered.length} dari {schedules.length} data
           </div>
         )}
+        {/* {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/50 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-slate-500 font-medium">
+              Menampilkan {paginatedData.length} data di Halaman <span className="font-bold text-slate-900">{currentPage}</span> dari {totalPages}
+              <span className="ml-2">(Total {filtered.length} data)</span>
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 text-xs font-bold bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+              >
+                ← Sebelumnya
+              </button>
+              <button
+                onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-4 py-2 text-xs font-bold bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-sm"
+              >
+                Selanjutnya →
+              </button>
+            </div>
+          </div>
+        )} */}
       </div>
     </div>
   );

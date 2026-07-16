@@ -17,6 +17,7 @@ export async function updateProfile(prevState: any, formData: FormData) {
   const confirmPassword = formData.get("confirmPassword") as string;
   const nim = formData.get("nim") as string | null;
   const prodi = formData.get("prodi") as string | null;
+  const kelas = formData.get("kelas") as string | null;
 
   // Siapkan object data update untuk profil
   const updates: any = {};
@@ -58,6 +59,10 @@ export async function updateProfile(prevState: any, formData: FormData) {
 
   if (prodi !== null) {
     updates.prodi = prodi;
+  }
+
+  if (kelas !== null) {
+    updates.kelas = kelas;
   }
 
   // Eksekusi update profile jika ada yang dirubah
